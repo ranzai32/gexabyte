@@ -5,6 +5,8 @@ const { approveToken } = require('./src/erc20Utils');
 const { getPositionDetails, increaseLiquidityForPosition, decreaseLiquidityPartially, withdrawFullLiquidity, INonfungiblePositionManagerABI } = require('./src/uniswapPositionUtils');
 const { getUncollectedFees, collectFees } = require('./src/uniswapFeeUtils');
 const { startMonitoring } = require('./src/positionMonitor');
+const ACTION = process.env.ACTION || "MONITOR";
+const TOKEN_ID_TO_MANAGE = parseInt(process.env.TOKEN_ID_TO_MANAGE) || 198164;
 
 // Основная логика приложения
 async function main() {
@@ -27,11 +29,14 @@ async function main() {
         console.log(`Баланс ${TokenB.symbol}: ${ethers.formatUnits(balanceB_wei, TokenB.decimals)}`);
 
         // --- Выберите действие ---
-        const ACTION = process.env.ACTION || "MONITOR"; // MONITOR, MINT, GET_INFO, INCREASE, DECREASE, WITHDRAW, COLLECT_FEES
-        const TOKEN_ID_TO_MANAGE = parseInt(process.env.TOKEN_ID_TO_MANAGE) || 198164; // ID для управления (если не MINT)
+ 
+         
+        console.log("ACTION в глобальной области:", ACTION); // MONITOR, MINT, GET_INFO, INCREASE, DECREASE, WITHDRAW, COLLECT_FEES
+          // ID для управления (если не MINT)
         
         console.log(`\nВыбрано действие: ${ACTION}`);
         if (ACTION !== "MINT") {
+            
             console.log(`Token ID для управления: ${TOKEN_ID_TO_MANAGE}`);
         }
 
@@ -124,6 +129,7 @@ async function main() {
         } else if (ACTION === "WITHDRAW") {
             await withdrawFullLiquidity(TOKEN_ID_TO_MANAGE, wallet);
         } else if (ACTION === "MONITOR") {
+            console.log("ACTION внутри main, перед if:", ACTION);
             const monitoredPoolFeeTier = FeeAmount.LOW; // Предполагаем, что позиция в этом пуле
             const monitoringIntervalMs = parseInt(process.env.MONITOR_INTERVAL_MS) || 30000;
             startMonitoring(TOKEN_ID_TO_MANAGE, TokenA, TokenB, monitoredPoolFeeTier, wallet, monitoringIntervalMs);
@@ -143,6 +149,7 @@ async function main() {
         console.error("\nПроизошла глобальная ошибка в main:", error);
          process.exit(1);
     }
+    
     // Если не мониторинг, то можно завершить процесс
     if (ACTION !== "MONITOR") {
         console.log("\n--- Завершение работы скрипта ---");

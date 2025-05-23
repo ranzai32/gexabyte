@@ -1,5 +1,8 @@
-require('dotenv').config({ path: '../.env' });  
-
+const path = require('path');
+const envFilePath = path.resolve(__dirname, '../.env');
+const configResult = require('dotenv').config({
+    path: envFilePath,
+});
 const { ethers } = require("ethers");
 const { Token } = require('@uniswap/sdk-core');
 
@@ -12,12 +15,6 @@ const UNISWAP_V3_FACTORY_ADDRESS = process.env.UNISWAP_V3_FACTORY_ADDRESS;
 const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;
 const TOKEN0_ADDRESS_ENV = process.env.TOKEN0_ADDRESS;  
 const TOKEN1_ADDRESS_ENV = process.env.TOKEN1_ADDRESS;
-console.log("ОТЛАДКА config.js: process.env.RPC_URL =", process.env.RPC_URL);
-console.log("ОТЛАДКА config.js: process.env.PRIVATE_KEY =", process.env.PRIVATE_KEY ? "Загружен (значение не отображается)" : "ОТСУТСТВУЕТ!");
-console.log("ОТЛАДКА config.js: process.env.UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS =", process.env.UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS);
-console.log("ОТЛАДКА config.js: process.env.UNISWAP_V3_FACTORY_ADDRESS =", process.env.UNISWAP_V3_FACTORY_ADDRESS);
-console.log("ОТЛАДКА config.js: process.env.TOKEN0_ADDRESS =", process.env.TOKEN0_ADDRESS); 
-console.log("ОТЛАДКА config.js: process.env.TOKEN1_ADDRESS =", process.env.TOKEN1_ADDRESS);  
 
 if (!RPC_URL || !PRIVATE_KEY || !UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS || !UNISWAP_V3_FACTORY_ADDRESS || !TOKEN0_ADDRESS_ENV || !TOKEN1_ADDRESS_ENV) {
     console.error("ОШИБКА в config.js: Одна или несколько обязательных переменных окружения не установлены.");
