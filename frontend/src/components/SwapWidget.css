@@ -1,0 +1,188 @@
+.swap-widget {
+    background-color: #353547;
+    padding: 1.5rem;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    color: white;
+}
+
+.swap-token-input-container {
+    margin-bottom: 1rem;
+}
+
+.swap-token-input-container label {
+    display: block;
+    font-size: 0.875rem;
+    color: #a5a2b3;
+    margin-bottom: 0.5rem;
+}
+
+.swap-token-input .amount-input-field {  
+    flex-grow: 1;  
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 1.25rem;  
+    padding: 0.5rem 0.25rem;  
+    min-width: 50px; 
+}
+.swap-token-input input[type="number"] {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 1.25rem;
+    width: 60%;
+}
+
+.swap-token-input .amount-input-field::-webkit-outer-spin-button,
+.swap-token-input .amount-input-field::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.token-select-btn {
+    background-color: #404058;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;  
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 0.5rem; 
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; 
+}
+
+.token-select-btn:hover {
+    background-color: #505068;
+}
+
+.swap-arrow-container {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0;
+}
+
+.swap-direction-btn {
+    background-color: #27262c;
+    color: #a5a2b3;
+    border: 1px solid #404058;
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.swap-direction-btn:hover {
+    border-color: #a5a2b3;
+}
+
+.swap-action-btn {
+    background-color: #2172e5;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 1rem;
+    width: 100%;
+    font-size: 1.125rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background-color 0.2s ease;
+}
+
+.swap-action-btn:hover {
+    background-color: #1b5db0;
+}
+
+.swap-action-btn:disabled {
+    background-color: #353547;
+    color: #6c6c82;
+    cursor: not-allowed;
+}
+
+.token-logo {
+    width: 22px;  
+    height: 20px;
+    margin-right: 0.5rem;
+    border-radius: 50%;  
+}
+
+.swap-token-input {
+    display: flex;
+    align-items: center;
+    background-color: #27262c; 
+    border-radius: 12px;  
+    padding: 0.75rem 1rem;  
+    border: 1px solid #404058;
+    transition: border-color 0.2s ease;  
+}
+
+.swap-token-input:focus-within {
+    border-color: #7a6eaa; 
+}
+
+.token-select-btn {
+    background-color: #404058; /* Фон кнопки был таким, можно оставить или сделать прозрачным, если фон у .swap-token-input */
+    /* background-color: transparent; */ /* Если хотим, чтобы фон был от родителя .swap-token-input */
+    color: white;
+    border: none; /* Убираем свою рамку, если она есть */
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; /* Кнопка не должна сжиматься */
+    /* margin-left: 0.5rem; Убираем этот отступ, так как кнопка теперь слева */
+    margin-right: 0.75rem; /* Добавляем отступ СПРАВА от кнопки до поля ввода */
+}
+.token-select-btn:hover {
+    background-color: #505068; /* Или другой цвет при наведении */
+}
+
+.token-logo {
+    width: 22px;
+    height: 22px;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+}
+
+.swap-token-input .amount-input-field {
+    flex-grow: 1; /* Занимает все доступное место */
+    background: transparent; /* Прозрачный фон, чтобы был виден фон .swap-token-input */
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 1.5rem; /* Увеличим шрифт для суммы */
+    padding: 0.5rem 0.25rem;
+    min-width: 50px;
+    text-align: right; /* Выравниваем текст (сумму) по правому краю */
+}
+
+/* Стили для плейсхолдера, если нужно (может наследоваться от инпута) */
+.swap-token-input .amount-input-field::placeholder {
+    color: #6c6c82; /* Более тусклый цвет для плейсхолдера */
+    /* text-align: right; /* Плейсхолдер тоже справа */
+}
+
+
+/* Убираем стрелки у input type number (если type="text", эти стили не нужны, но пусть будут для type="number") */
+.swap-token-input .amount-input-field::-webkit-outer-spin-button,
+.swap-token-input .amount-input-field::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.swap-token-input .amount-input-field {
+    -moz-appearance: textfield; /* Для Firefox */
+}
