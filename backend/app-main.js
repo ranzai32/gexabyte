@@ -18,7 +18,7 @@ const UNISWAP_V3_SWAP_ROUTER_ADDRESS = process.env.UNISWAP_V3_SWAP_ROUTER_ADDRES
 const UNISWAP_V3_FACTORY_ADDRESS = process.env.UNISWAP_V3_FACTORY_ADDRESS;
 const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;  
 const TOKEN0_ADDRESS_ENV = process.env.TOKEN0_ADDRESS; // WETH
-const TOKEN1_ADDRESS_ENV = process.env.TOKEN1_ADDRESS; // USDC
+const TOKEN1_ADDRESS_ENV = "0x340a5B718557801f20AfD6E244C78Fcd1c0B2212"; // USDC
 
 if (!RPC_URL || !PRIVATE_KEY || !UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS || !UNISWAP_V3_FACTORY_ADDRESS || !TOKEN0_ADDRESS_ENV || !TOKEN1_ADDRESS_ENV) {
     console.error("Ошибка: Одна или несколько обязательных переменных окружения не установлены (RPC_URL, PRIVATE_KEY, NFT_MANAGER, FACTORY, TOKEN0_ADDRESS, TOKEN1_ADDRESS).");
@@ -817,22 +817,22 @@ async function main() {
         console.log("Баланс кошелька (ETH Sepolia):", ethers.formatEther(ethBalance), "ETH");
 
 
-        const knownTokenId = 198164;
-        const monitoredPoolFeeTier = FeeAmount.LOW;
-        const monitoringIntervalMs = 30000;
-        console.log(`\nЗапускаем мониторинг для Token ID ${knownTokenId} каждые ${monitoringIntervalMs / 1000} секунд...`);
-        console.log("Нажмите Ctrl+C для остановки.");
-        await monitorPositionAndPool(knownTokenId, TokenA, TokenB, monitoredPoolFeeTier, provider);
-        const intervalId = setInterval(async () => {
-            await monitorPositionAndPool(knownTokenId, TokenA, TokenB, monitoredPoolFeeTier, provider);
-        }, monitoringIntervalMs);
+        // const knownTokenId = 198164;
+        // const monitoredPoolFeeTier = FeeAmount.LOW;
+        // const monitoringIntervalMs = 30000;
+        // console.log(`\nЗапускаем мониторинг для Token ID ${knownTokenId} каждые ${monitoringIntervalMs / 1000} секунд...`);
+        // console.log("Нажмите Ctrl+C для остановки.");
+        // await monitorPositionAndPool(knownTokenId, TokenA, TokenB, monitoredPoolFeeTier, provider);
+        // const intervalId = setInterval(async () => {
+        //     await monitorPositionAndPool(knownTokenId, TokenA, TokenB, monitoredPoolFeeTier, provider);
+        // }, monitoringIntervalMs);
 
 
         // const initialPositionDetails = await getPositionDetails(knownTokenId, provider);
         // if (initialPositionDetails && initialPositionDetails.liquidity > 0n) { // Убедимся, что есть ликвидность
         //     await getUncollectedFees(knownTokenId, provider); // Посмотрим комиссии до
 
-        // // Теперь попытаемся частично изъять ликвидность
+        // Теперь попытаемся частично изъять ликвидность
         // console.log(`\nПопытка изъять ${percentageToWithdraw}% ликвидности из позиции ${knownTokenId}...`);
         // await decreaseLiquidityPartially(knownTokenId, percentageToWithdraw, wallet);
         // } else if (initialPositionDetails && initialPositionDetails.liquidity === 0n) {
@@ -842,161 +842,161 @@ async function main() {
         //     console.log(`Не удалось получить информацию для позиции ${knownTokenId} перед частичным изъятием.`);
         // }
 
-        // const tokenAContract = new ethers.Contract(TokenA.address, ERC20_ABI, provider);
-        // const tokenBContract = new ethers.Contract(TokenB.address, ERC20_ABI, provider);
-        // const balanceA_wei = await tokenAContract.balanceOf(wallet.address);
-        // const balanceB_wei = await tokenBContract.balanceOf(wallet.address);
-        // console.log(`Баланс ${TokenA.symbol}: ${ethers.formatUnits(balanceA_wei, TokenA.decimals)}`);
-        // console.log(`Баланс ${TokenB.symbol}: ${ethers.formatUnits(balanceB_wei, TokenB.decimals)}`);
+        const tokenAContract = new ethers.Contract(TokenA.address, ERC20_ABI, provider);
+        const tokenBContract = new ethers.Contract(TokenB.address, ERC20_ABI, provider);
+        const balanceA_wei = await tokenAContract.balanceOf(wallet.address);
+        const balanceB_wei = await tokenBContract.balanceOf(wallet.address);
+        console.log(`Баланс ${TokenA.symbol}: ${ethers.formatUnits(balanceA_wei, TokenA.decimals)}`);
+        console.log(`Баланс ${TokenB.symbol}: ${ethers.formatUnits(balanceB_wei, TokenB.decimals)}`);
 
-        // const selectedFeeTier = FeeAmount.LOW; // 0.05%
-        // const currentPool = await getPoolData(TokenA, TokenB, selectedFeeTier);
+        const selectedFeeTier = 1000; // 0.05%
+        const currentPool = await getPoolData(TokenA, TokenB, selectedFeeTier);
 
-        // if (!currentPool) {
-        //     console.log("\nНе удалось получить данные пула. Завершение работы.");
-        //     return;
-        // }
+        if (!currentPool) {
+            console.log("\nНе удалось получить данные пула. Завершение работы.");
+            return;
+        }
 
-        // console.log("\n--- Подготовка к созданию позиции ликвидности ---");
-        // const tickSpacing = currentPool.tickSpacing;
-        // const currentTick = currentPool.tickCurrent;
-        // const tickRangeWidth = 50 * tickSpacing;
-        // const tickLower = Math.floor((currentTick - tickRangeWidth) / tickSpacing) * tickSpacing;
-        // const tickUpper = Math.ceil((currentTick + tickRangeWidth) / tickSpacing) * tickSpacing;
+        console.log("\n--- Подготовка к созданию позиции ликвидности ---");
+        const tickSpacing = currentPool.tickSpacing;
+        const currentTick = currentPool.tickCurrent;
+        const tickRangeWidth = 50 * tickSpacing;
+        const tickLower = Math.floor((currentTick - tickRangeWidth) / tickSpacing) * tickSpacing;
+        const tickUpper = Math.ceil((currentTick + tickRangeWidth) / tickSpacing) * tickSpacing;
 
-        // console.log(`  Текущий Tick пула: ${currentTick}, TickSpacing: ${tickSpacing}`);
-        // console.log(`  Выбранный диапазон Tick: Lower: ${tickLower}, Upper: ${tickUpper}`);
+        console.log(`  Текущий Tick пула: ${currentTick}, TickSpacing: ${tickSpacing}`);
+        console.log(`  Выбранный диапазон Tick: Lower: ${tickLower}, Upper: ${tickUpper}`);
 
-        // const amountTokenA_toProvide_str = "0.000005";
-        // const amountTokenA_toProvide_wei = ethers.parseUnits(amountTokenA_toProvide_str, TokenA.decimals);
-        // console.log(`  Планируем внести: ${amountTokenA_toProvide_str} ${TokenA.symbol}`);
+        const amountTokenA_toProvide_str = "0.000005";
+        const amountTokenA_toProvide_wei = ethers.parseUnits(amountTokenA_toProvide_str, TokenA.decimals);
+        console.log(`  Планируем внести: ${amountTokenA_toProvide_str} ${TokenA.symbol}`);
 
-        // if (balanceA_wei < amountTokenA_toProvide_wei) {
-        //     console.error(`Недостаточно ${TokenA.symbol} на балансе для внесения этой суммы. У вас: ${ethers.formatUnits(balanceA_wei, TokenA.decimals)}, Требуется: ${amountTokenA_toProvide_str}`);
-        //     console.log(`Пожалуйста, пополните баланс ${TokenA.symbol} или уменьшите вносимую сумму.`);
-        //     return;
-        // }
+        if (balanceA_wei < amountTokenA_toProvide_wei) {
+            console.error(`Недостаточно ${TokenA.symbol} на балансе для внесения этой суммы. У вас: ${ethers.formatUnits(balanceA_wei, TokenA.decimals)}, Требуется: ${amountTokenA_toProvide_str}`);
+            console.log(`Пожалуйста, пополните баланс ${TokenA.symbol} или уменьшите вносимую сумму.`);
+            return;
+        }
 
-        // let position;
-        // const amountTokenA_toProvide_wei_string = amountTokenA_toProvide_wei.toString();
+        let position;
+        const amountTokenA_toProvide_wei_string = amountTokenA_toProvide_wei.toString();
 
-        // if (TokenA.equals(currentPool.token0)) {
-        //     position = Position.fromAmount0({
-        //         pool: currentPool,
-        //         tickLower: tickLower,
-        //         tickUpper: tickUpper,
-        //         amount0: amountTokenA_toProvide_wei_string,
-        //         useFullPrecision: true
-        //     });
-        // } else if (TokenA.equals(currentPool.token1)) {
-        //     position = Position.fromAmount1({
-        //         pool: currentPool,
-        //         tickLower: tickLower,
-        //         tickUpper: tickUpper,
-        //         amount1: amountTokenA_toProvide_wei_string,
-        //         useFullPrecision: true
-        //     });
-        // } else {
-        //     console.error("Критическая ошибка: Входной TokenA не является ни token0, ни token1 для SDK объекта Pool.");
-        //     return;
-        // }
+        if (TokenA.equals(currentPool.token0)) {
+            position = Position.fromAmount0({
+                pool: currentPool,
+                tickLower: tickLower,
+                tickUpper: tickUpper,
+                amount0: amountTokenA_toProvide_wei_string,
+                useFullPrecision: true
+            });
+        } else if (TokenA.equals(currentPool.token1)) {
+            position = Position.fromAmount1({
+                pool: currentPool,
+                tickLower: tickLower,
+                tickUpper: tickUpper,
+                amount1: amountTokenA_toProvide_wei_string,
+                useFullPrecision: true
+            });
+        } else {
+            console.error("Критическая ошибка: Входной TokenA не является ни token0, ни token1 для SDK объекта Pool.");
+            return;
+        }
 
-        // console.log(`  Расчетные суммы для позиции (на основе ${amountTokenA_toProvide_str} ${TokenA.symbol}):`);
-        // console.log(`    Требуется ${position.amount0.currency.symbol}: ${position.amount0.toSignificant(6)} (raw: ${position.amount0.quotient.toString()})`);
-        // console.log(`    Требуется ${position.amount1.currency.symbol}: ${position.amount1.toSignificant(6)} (raw: ${position.amount1.quotient.toString()})`);
+        console.log(`  Расчетные суммы для позиции (на основе ${amountTokenA_toProvide_str} ${TokenA.symbol}):`);
+        console.log(`    Требуется ${position.amount0.currency.symbol}: ${position.amount0.toSignificant(6)} (raw: ${position.amount0.quotient.toString()})`);
+        console.log(`    Требуется ${position.amount1.currency.symbol}: ${position.amount1.toSignificant(6)} (raw: ${position.amount1.quotient.toString()})`);
 
-        // const { amount0: amount0ToMint_JSBI, amount1: amount1ToMint_JSBI } = position.mintAmounts;
+        const { amount0: amount0ToMint_JSBI, amount1: amount1ToMint_JSBI } = position.mintAmounts;
 
-        // const amount0Desired_Str = amount0ToMint_JSBI.toString();
-        // const amount1Desired_Str = amount1ToMint_JSBI.toString();
-        // const amount0Min_Str = "0";
-        // const amount1Min_Str = "0";
+        const amount0Desired_Str = amount0ToMint_JSBI.toString();
+        const amount1Desired_Str = amount1ToMint_JSBI.toString();
+        const amount0Min_Str = "0";
+        const amount1Min_Str = "0";
 
-        // // Проверяем баланс USDC ПОСЛЕ расчета, используя правильные переменные JSBI
-        // let requiredTokenB_JSBI_forBalanceCheck;
-        // if (TokenB.equals(position.pool.token0)) { // Если TokenB (USDC) это token0 пула
-        //     requiredTokenB_JSBI_forBalanceCheck = amount0ToMint_JSBI;
-        // } else { // Если TokenB (USDC) это token1 пула
-        //     requiredTokenB_JSBI_forBalanceCheck = amount1ToMint_JSBI;
-        // }
+        // Проверяем баланс USDC ПОСЛЕ расчета, используя правильные переменные JSBI
+        let requiredTokenB_JSBI_forBalanceCheck;
+        if (TokenB.equals(position.pool.token0)) { // Если TokenB (USDC) это token0 пула
+            requiredTokenB_JSBI_forBalanceCheck = amount0ToMint_JSBI;
+        } else { // Если TokenB (USDC) это token1 пула
+            requiredTokenB_JSBI_forBalanceCheck = amount1ToMint_JSBI;
+        }
 
-        // if (balanceB_wei < BigInt(requiredTokenB_JSBI_forBalanceCheck.toString())) {
-        //     console.error(`Недостаточно ${TokenB.symbol} для внесения ликвидности. У вас: ${ethers.formatUnits(balanceB_wei, TokenB.decimals)}, Требуется: ${ethers.formatUnits(requiredTokenB_JSBI_forBalanceCheck.toString(), TokenB.decimals)}`);
-        //     return;
-        // }
+        if (balanceB_wei < BigInt(requiredTokenB_JSBI_forBalanceCheck.toString())) {
+            console.error(`Недостаточно ${TokenB.symbol} для внесения ликвидности. У вас: ${ethers.formatUnits(balanceB_wei, TokenB.decimals)}, Требуется: ${ethers.formatUnits(requiredTokenB_JSBI_forBalanceCheck.toString(), TokenB.decimals)}`);
+            return;
+        }
 
-        // console.log("\n--- Одобрение токенов для NonfungiblePositionManager ---");
-        // const approvedToken0 = await approveToken(position.pool.token0, amount0ToMint_JSBI, UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, wallet);
-        // const approvedToken1 = await approveToken(position.pool.token1, amount1ToMint_JSBI, UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, wallet);
+        console.log("\n--- Одобрение токенов для NonfungiblePositionManager ---");
+        const approvedToken0 = await approveToken(position.pool.token0, amount0ToMint_JSBI, UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, wallet);
+        const approvedToken1 = await approveToken(position.pool.token1, amount1ToMint_JSBI, UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, wallet);
 
-        // if (!approvedToken0 || !approvedToken1) {
-        //     console.error("Не удалось одобрить один или оба токена. Минтинг отменен.");
-        //     return;
-        // }
+        if (!approvedToken0 || !approvedToken1) {
+            console.error("Не удалось одобрить один или оба токена. Минтинг отменен.");
+            return;
+        }
 
-        // console.log("\n--- Шаг 3.3: Минтинг новой позиции ликвидности ---");
-        // const nftPositionManagerContract = new ethers.Contract(
-        //     UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
-        //     INonfungiblePositionManagerABI,
-        //     wallet
-        // );
+        console.log("\n--- Шаг 3.3: Минтинг новой позиции ликвидности ---");
+        const nftPositionManagerContract = new ethers.Contract(
+            UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
+            INonfungiblePositionManagerABI,
+            wallet
+        );
 
-        // const mintOptions = {
-        //     token0: currentPool.token0.address,
-        //     token1: currentPool.token1.address,
-        //     fee: currentPool.fee,
-        //     tickLower: position.tickLower,
-        //     tickUpper: position.tickUpper,
-        //     amount0Desired: amount0Desired_Str,
-        //     amount1Desired: amount1Desired_Str,
-        //     amount0Min: amount0Min_Str,
-        //     amount1Min: amount1Min_Str,
-        //     recipient: wallet.address,
-        //     deadline: Math.floor(Date.now() / 1000) + 60 * 20
-        // };
+        const mintOptions = {
+            token0: currentPool.token0.address,
+            token1: currentPool.token1.address,
+            fee: currentPool.fee,
+            tickLower: position.tickLower,
+            tickUpper: position.tickUpper,
+            amount0Desired: amount0Desired_Str,
+            amount1Desired: amount1Desired_Str,
+            amount0Min: amount0Min_Str,
+            amount1Min: amount1Min_Str,
+            recipient: wallet.address,
+            deadline: Math.floor(Date.now() / 1000) + 60 * 20
+        };
 
-        // console.log("Параметры для mint (с конвертированными суммами):", mintOptions);
+        console.log("Параметры для mint (с конвертированными суммами):", mintOptions);
 
-        // try {
-        //     console.log("Отправка транзакции mint...");
-        //     const mintTx = await nftPositionManagerContract.mint(mintOptions);
-        //     console.log(`  Транзакция mint отправлена: ${mintTx.hash}`);
-        //     const receipt = await mintTx.wait(1);
-        //     console.log("  Транзакция mint подтверждена.");
+        try {
+            console.log("Отправка транзакции mint...");
+            const mintTx = await nftPositionManagerContract.mint(mintOptions);
+            console.log(`  Транзакция mint отправлена: ${mintTx.hash}`);
+            const receipt = await mintTx.wait(1);
+            console.log("  Транзакция mint подтверждена.");
 
-        //     const eventInterface = new ethers.Interface(INonfungiblePositionManagerABI);
-        //     let tokenId = null;
-        //     for (const log of receipt.logs) {
-        //         try {
-        //             const parsedLog = eventInterface.parseLog(log);
-        //             if (parsedLog && parsedLog.name === "IncreaseLiquidity") {
-        //                 tokenId = parsedLog.args.tokenId;
-        //                 break;
-        //             }
-        //         } catch (e) { /* Не тот лог или не тот ABI */ }
-        //     }
+            const eventInterface = new ethers.Interface(INonfungiblePositionManagerABI);
+            let tokenId = null;
+            for (const log of receipt.logs) {
+                try {
+                    const parsedLog = eventInterface.parseLog(log);
+                    if (parsedLog && parsedLog.name === "IncreaseLiquidity") {
+                        tokenId = parsedLog.args.tokenId;
+                        break;
+                    }
+                } catch (e) { /* Не тот лог или не тот ABI */ }
+            }
 
-        //     if (tokenId !== null) {
-        //         console.log(`\n🎉 Позиция ликвидности успешно создана! Token ID: ${tokenId.toString()}`);
-        //         const positionDetails = await getPositionDetails(tokenId, provider);  
-        //         if (positionDetails) {
+            if (tokenId !== null) {
+                console.log(`\n🎉 Позиция ликвидности успешно создана! Token ID: ${tokenId.toString()}`);
+                const positionDetails = await getPositionDetails(tokenId, provider);  
+                if (positionDetails) {
                      
-        //             await getUncollectedFees(tokenId, provider);  
-        //         }
-        //     } else {
-        //         console.log("\n⚠️ Позиция создана, но не удалось извлечь tokenId из событий. Проверьте транзакцию в блок-эксплорере.");
-        //     }
-        // } catch (mintError) {
-        //     console.error("Ошибка при минте позиции:", mintError.reason || mintError.message);
-        //     if (mintError.data) {
-        //         try {
-        //             const errorData = nftPositionManagerContract.interface.parseError(mintError.data);
-        //             console.error("  Ошибка контракта:", errorData.name, errorData.args);
-        //         } catch (e) {
-        //             console.error("  Не удалось распарсить данные ошибки контракта:", mintError.data);
-        //         }
-        //     }
-        // }
+                    await getUncollectedFees(tokenId, provider);  
+                }
+            } else {
+                console.log("\n⚠️ Позиция создана, но не удалось извлечь tokenId из событий. Проверьте транзакцию в блок-эксплорере.");
+            }
+        } catch (mintError) {
+            console.error("Ошибка при минте позиции:", mintError.reason || mintError.message);
+            if (mintError.data) {
+                try {
+                    const errorData = nftPositionManagerContract.interface.parseError(mintError.data);
+                    console.error("  Ошибка контракта:", errorData.name, errorData.args);
+                } catch (e) {
+                    console.error("  Не удалось распарсить данные ошибки контракта:", mintError.data);
+                }
+            }
+        }
     } catch (error) {
         console.error("\nПроизошла глобальная ошибка в main:", error);
     }

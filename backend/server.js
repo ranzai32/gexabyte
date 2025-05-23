@@ -1,6 +1,6 @@
 // backend/server.js
 require('dotenv').config({ path: './.env' }); // Убедитесь, что .env в корне backend
-
+const { ethers } = require('ethers'); 
 const express = require('express');
 const cors = require('cors');
 
@@ -11,9 +11,10 @@ const { getPoolData } = require('./src/uniswapPoolUtils'); //
 const { getPositionDetails } = require('./src/uniswapPositionUtils'); //
 const { getUncollectedFees } = require('./src/uniswapFeeUtils'); //
 const { Token: UniswapToken } = require('@uniswap/sdk-core'); // Переименовываем, чтобы не конфликтовать с Token из config
-
+const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;
 const app = express();
-const PORT = process.env.BACKEND_PORT || 3001; // Вы можете задать порт в .env или использовать 3001 по умолчанию
+const PORT = 3001;
+const IQuoterV2_ABI = require('./src/abi/IQuoterV2_ABI.json');  
 
 app.use(cors()); // Включаем CORS для всех маршрутов
 app.use(express.json()); // Middleware для парсинга JSON в теле запроса
@@ -36,6 +37,103 @@ app.get('/', (req, res) => {
  * - tokenA_symbol: символ первого токена (опционально, по умолчанию TKA)
  * - tokenB_symbol: символ второго токена (опционально, по умолчанию TKB)
  */
+
+app.get('/api/quote', async (req, res) => {
+    const {
+        tokenFromAddress,
+        tokenToAddress,
+        amountFrom, // Ожидается сумма в наименьших единицах (wei-подобная) как строка
+        feeTier,    // Например, "500", "3000", "10000"
+        // Десятичные и символы можно не передавать, если адреса уникальны и известны
+        // или если вы их будете получать из другого источника (например, предзагруженный список токенов на бэкенде)
+    } = req.query;
+
+    // const pool = await getPoolData(tFrom, tTo, parsedFeeTier); 
+    // if (!pool) {
+    //     console.warn(`[API /quote] Pool not found for <span class="math-inline">\{tFrom\.symbol\}/</span>{tTo.symbol} with fee ${parsedFeeTier}`);
+    //     return res.status(404).json({ error: `Pool not found for <span class="math-inline">\{tFrom\.symbol\}/</span>{tTo.symbol} with fee ${parsedFeeTier / 10000}%` });
+    // }
+
+    if (!tokenFromAddress || !tokenToAddress || !amountFrom || !feeTier) {
+        return res.status(400).json({ error: 'Missing required query parameters: tokenFromAddress, tokenToAddress, amountFrom, feeTier for quote.' });
+    }
+
+    if (!UNISWAP_V3_QUOTER_V2_ADDRESS) {
+        console.error("[API /quote] Error: UNISWAP_V3_QUOTER_V2_ADDRESS is not defined in .env or config.");
+        return res.status(500).json({ error: 'Quoter address not configured on server.' });
+    }
+
+    try {
+        const parsedAmountFrom = ethers.getBigInt(amountFrom);
+        const parsedFeeTier = parseInt(feeTier);
+
+        if (isNaN(parsedFeeTier)) {
+            return res.status(400).json({ error: "Invalid feeTier for quote." });
+        }
+        if (parsedAmountFrom <= 0n) {
+            return res.status(400).json({ error: "Amount to swap must be positive." });
+        }
+
+        console.log(`[API /quote] Request: amount ${amountFrom} of ${tokenFromAddress} for ${tokenToAddress}, Fee: ${parsedFeeTier}`);
+
+        const quoterContract = new ethers.Contract(
+            UNISWAP_V3_QUOTER_V2_ADDRESS,
+            IQuoterV2_ABI,
+            provider // Quoter использует provider для чтения данных
+        );
+
+        const params = {
+            tokenIn: tokenFromAddress,
+            tokenOut: tokenToAddress,
+            amountIn: parsedAmountFrom,
+            fee: parsedFeeTier,
+            sqrtPriceLimitX96: 0 // 0 означает отсутствие ограничения цены
+        };
+
+        // Вызов функции контракта QuoterV2
+        // quoteExactInputSingle возвращает кортеж, нам нужен первый элемент amountOut
+        const quoteResult = await quoterContract.quoteExactInputSingle.staticCall(params);
+        const amountOut = quoteResult[0]; // Первый элемент это amountOut
+
+        console.log(`[API /quote] Quoted amountOut: ${amountOut.toString()}`);
+
+        res.json({
+            amountTo: amountOut.toString(), // Возвращаем в наименьших единицах
+            // Можно также вернуть другие данные из quoteResult, если они нужны фронтенду:
+            // sqrtPriceX96After: quoteResult.sqrtPriceX96After.toString(),
+            // initializedTicksCrossed: quoteResult.initializedTicksCrossed.toString(),
+            // gasEstimate: quoteResult.gasEstimate.toString()
+        });
+
+    } catch (error) {
+        console.error("[API /quote] Error:", error.message);
+        // Попытка распарсить ошибку контракта, если она есть
+        let contractErrorReason = "Failed to get quote.";
+        if (error.data) {
+             try {
+                // Это стандартный способ получения revert reason из ошибки ethers.js
+                const reason = provider.interface.parseError(error.data);
+                if (reason) contractErrorReason = `<span class="math-inline">\{reason\.name\}\(</span>{reason.args.join(', ')})`;
+             } catch (e) {
+                // Иногда ошибка может быть просто строкой
+                if (typeof error.data === 'string' && error.data.startsWith('0x')) {
+                    // Попытка декодировать как строку ошибки Solidity
+                    const hex = error.data.startsWith('0x') ? error.data : `0x${error.data}`;
+                    if (hex.length > 138) { // 0x + Error(string) selector + offset + length + string
+                        try {
+                            contractErrorReason = ethers.toUtf8String("0x" + hex.substring(138));
+                        } catch (decodeError) { /* ignore */ }
+                    }
+                }
+             }
+        } else if (error.reason) {
+            contractErrorReason = error.reason;
+        }
+
+        res.status(500).json({ error: contractErrorReason, details: error.message });
+    }
+});
+
 app.get('/api/pool-data', async (req, res) => {
     const {
         tokenA_address,

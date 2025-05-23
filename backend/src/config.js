@@ -8,13 +8,13 @@ const { Token } = require('@uniswap/sdk-core');
 
 const RPC_URL = process.env.RPC_URL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
- 
 const UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS = process.env.UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS;
 const UNISWAP_V3_SWAP_ROUTER_ADDRESS = process.env.UNISWAP_V3_SWAP_ROUTER_ADDRESS;
 const UNISWAP_V3_FACTORY_ADDRESS = process.env.UNISWAP_V3_FACTORY_ADDRESS;
-const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;
-const TOKEN0_ADDRESS_ENV = process.env.TOKEN0_ADDRESS;  
+const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;  
+const TOKEN0_ADDRESS_ENV = process.env.TOKEN0_ADDRESS;
 const TOKEN1_ADDRESS_ENV = process.env.TOKEN1_ADDRESS;
+
 
 if (!RPC_URL || !PRIVATE_KEY || !UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS || !UNISWAP_V3_FACTORY_ADDRESS || !TOKEN0_ADDRESS_ENV || !TOKEN1_ADDRESS_ENV) {
     console.error("ОШИБКА в config.js: Одна или несколько обязательных переменных окружения не установлены.");

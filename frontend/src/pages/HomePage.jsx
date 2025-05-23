@@ -15,7 +15,7 @@ const chainIcons = [
     { name: 'opBNB', src: 'https://assets.pcswap.org/web/chains/svg/204.svg' }
 ];
 
-function HomePage() {
+function HomePage({ isWalletConnected, provider, signer }) {
     return (
         <div className="homepage">
             <div className="homepage-left">
@@ -39,7 +39,11 @@ function HomePage() {
                  
             </div>
             <div className="homepage-right">
-                <SwapWidget />
+                <SwapWidget 
+                    isWalletConnected={isWalletConnected} 
+                    provider={provider} 
+                    signer={signer} 
+                />
             </div>
         </div>
     );

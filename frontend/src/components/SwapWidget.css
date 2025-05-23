@@ -59,6 +59,14 @@
     flex-shrink: 0; 
 }
 
+
+.token-arrow-button {
+    font-size: 0.7em; 
+    margin-left: auto;
+}
+.token-symbol-button {
+    margin-right: 0.3rem;  
+}
 .token-select-btn:hover {
     background-color: #505068;
 }
@@ -113,7 +121,7 @@
 
 .token-logo {
     width: 22px;  
-    height: 20px;
+    height: 22px;
     margin-right: 0.5rem;
     border-radius: 50%;  
 }
@@ -133,22 +141,24 @@
 }
 
 .token-select-btn {
-    background-color: #404058; /* Фон кнопки был таким, можно оставить или сделать прозрачным, если фон у .swap-token-input */
-    /* background-color: transparent; */ /* Если хотим, чтобы фон был от родителя .swap-token-input */
+    background-color: #404058;  
     color: white;
-    border: none; /* Убираем свою рамку, если она есть */
+    border: none; 
     border-radius: 8px;
     padding: 0.6rem 0.85rem;
     cursor: pointer;
     font-weight: bold;
     display: flex;
     align-items: center;
-    flex-shrink: 0; /* Кнопка не должна сжиматься */
-    /* margin-left: 0.5rem; Убираем этот отступ, так как кнопка теперь слева */
-    margin-right: 0.75rem; /* Добавляем отступ СПРАВА от кнопки до поля ввода */
+    flex-shrink: 0;  
+    margin-right: 0.75rem;  
 }
 .token-select-btn:hover {
-    background-color: #505068; /* Или другой цвет при наведении */
+    background-color: #505068;  
+}
+
+.token-selector-wrapper {
+    position: relative;
 }
 
 .token-logo {
@@ -159,30 +169,26 @@
 }
 
 .swap-token-input .amount-input-field {
-    flex-grow: 1; /* Занимает все доступное место */
-    background: transparent; /* Прозрачный фон, чтобы был виден фон .swap-token-input */
+    flex-grow: 1;  
+    background: transparent;  
     border: none;
     outline: none;
     color: white;
-    font-size: 1.5rem; /* Увеличим шрифт для суммы */
+    font-size: 1.5rem;  
     padding: 0.5rem 0.25rem;
     min-width: 50px;
-    text-align: right; /* Выравниваем текст (сумму) по правому краю */
+    text-align: right;  
 }
 
-/* Стили для плейсхолдера, если нужно (может наследоваться от инпута) */
+ 
 .swap-token-input .amount-input-field::placeholder {
-    color: #6c6c82; /* Более тусклый цвет для плейсхолдера */
-    /* text-align: right; /* Плейсхолдер тоже справа */
+    color: #6c6c82;  
+     
 }
 
-
-/* Убираем стрелки у input type number (если type="text", эти стили не нужны, но пусть будут для type="number") */
 .swap-token-input .amount-input-field::-webkit-outer-spin-button,
 .swap-token-input .amount-input-field::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
-.swap-token-input .amount-input-field {
-    -moz-appearance: textfield; /* Для Firefox */
-}
+ 
