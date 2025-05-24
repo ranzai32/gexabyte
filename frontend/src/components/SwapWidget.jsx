@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'; 
 import { ethers } from 'ethers';
+import { useNavigate } from 'react-router-dom';
 import TokenSelectorDropdown from './TokenSelectorDropdown';  
 import './SwapWidget.css';
 
@@ -66,6 +67,7 @@ if (tokenKeys.length > 1 && initialFromIndex === initialToIndex) {
 }
 
 function SwapWidget({ isWalletConnected, provider, signer }) {
+    const navigate = useNavigate();
     const [tokenFromIndex, setTokenFromIndex] = useState(initialFromIndex);
     const [tokenToIndex, setTokenToIndex] = useState(initialToIndex);
     const [amountFrom, setAmountFrom] = useState('');
@@ -106,7 +108,18 @@ function SwapWidget({ isWalletConnected, provider, signer }) {
     } else {
         buttonText = "Swap";
         buttonDisabled = false;
-         
+        buttonAction = () => {
+            navigate('/trade', { 
+                state: { 
+                    tokenFrom: currentTokenFrom, 
+                    tokenTo: currentTokenTo, 
+                    amountFrom: amountFrom,
+                    amountTo: amountTo,  
+                    feeTier: 500  
+                     
+                } 
+            });
+        };
     }
 
     useEffect(() => {

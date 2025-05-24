@@ -1,0 +1,240 @@
+.trade-page-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    width: 100%;
+    flex-grow: 1;
+    background-color: #27262c;
+    color: white;
+}
+
+.trade-page-content {
+    background-color: #353547;
+    padding: 1.5rem 2rem 2rem 2rem;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.trade-page-content h2 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
+    color: #e0e0e0;
+}
+
+.swap-token-input-container {
+    margin-bottom: 0.75rem;
+}
+
+.swap-token-input-container label {
+    display: block;
+    font-size: 0.875rem;
+    color: #a5a2b3;
+    margin-bottom: 0.5rem;
+    padding-left: 0.25rem;
+}
+
+.swap-token-input {
+    display: flex;
+    align-items: center;
+    background-color: #27262c;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #404058;
+    transition: border-color 0.2s ease;
+}
+
+.swap-token-input:focus-within {
+    border-color: #7a6eaa;
+}
+
+.token-select-btn {
+    background-color: #404058;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+    transition: background-color 0.2s ease;
+}
+
+.token-select-btn:hover {
+    background-color: #505068;
+}
+
+.token-logo {
+    width: 22px;
+    height: 22px;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+}
+
+.token-symbol-button {
+    margin-right: 0.3rem;
+}
+
+.token-arrow-button {
+    font-size: 0.7em;
+    margin-left: 0.1rem;
+}
+
+.amount-input-field {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 1.5rem;
+    padding: 0.5rem 0.25rem;
+    min-width: 50px;
+    text-align: right;
+}
+
+.amount-input-field::placeholder {
+    color: #6c6c82;
+}
+
+.amount-input-field::-webkit-outer-spin-button,
+.amount-input-field::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.swap-arrow-container {
+    display: flex;
+    justify-content: center;
+    margin: 0.25rem 0;
+}
+
+.swap-direction-btn {
+    background-color: #27262c;
+    color: #a5a2b3;
+    border: 1px solid #404058;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.swap-direction-btn:hover {
+    border-color: #7a6eaa;
+    transform: translateY(1px);
+}
+
+.trade-summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.trade-summary-label {
+    font-size: 0.9rem;
+    color: #a5a2b3;
+}
+
+.trade-summary-value {
+    font-size: 1rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.trade-summary-value img.token-logo-summary {
+    width: 18px;
+    height: 18px;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+}
+
+.fee-tier-selector,
+.slippage-settings {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: #27262c;
+    border-radius: 10px;
+}
+
+.fee-tier-selector .trade-summary-label,
+.slippage-settings .trade-summary-label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
+.fee-tier-options {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.fee-tier-options button {
+    flex-grow: 1;
+    padding: 0.6rem 0.5rem;
+    border: 1px solid #404058;
+    background-color: #353547;
+    color: #c3c0d0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.fee-tier-options button:hover {
+    border-color: #7a6eaa;
+    color: white;
+}
+
+.fee-tier-options button.active {
+    background-color: #2172e5;
+    border-color: #2172e5;
+    color: white;
+    font-weight: bold;
+}
+
+.confirm-swap-button {
+    background-color: #2172e5;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 1rem;
+    width: 100%;
+    font-size: 1.125rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.confirm-swap-button:hover:not(:disabled) {
+    background-color: #1b5db0;
+}
+
+.confirm-swap-button:disabled {
+    background-color: #353547;
+    color: #6c6c82;
+    cursor: not-allowed;
+}
+
+.no-params-message {
+    text-align: center;
+    font-size: 1.1rem;
+    color: #a5a2b3;
+    margin: 2rem 0;
+}

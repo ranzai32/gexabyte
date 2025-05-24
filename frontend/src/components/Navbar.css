@@ -13,25 +13,6 @@
     align-items: center; 
 }
 
-.navbar-brand {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-right: 2rem;  
-    padding-left: 31px;
-}
-
-.navbar-links a {
-    color: white;
-    text-decoration: none;
-    margin-left: 1.5rem; 
-    font-size: 1.3rem;
-    transition: color 0.3s ease;
-}
-
-.navbar-links a:hover {
-    color: #3498db;  
-}
-
 .navbar-wallet {
     display: flex;
     align-items: center;
@@ -67,4 +48,30 @@
     color: #e74c3c;  
     margin-left: 1rem;
     font-size: 0.8rem;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-right: 2rem;  
+    color: white;  
+    text-decoration: none;  
+    transition: color 0.3s ease;  
+}
+
+ 
+.navbar-brand:hover {
+    color: #d0d0d0;  
+}
+
+.navbar-links a {  
+    color: white;
+    text-decoration: none;
+    margin-left: 1.5rem;
+    font-size: 1rem;
+    transition: color 0.3s ease;
+}
+
+.navbar-links a:hover {
+    color: #3498db;  
 }

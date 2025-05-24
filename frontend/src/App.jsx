@@ -1,9 +1,10 @@
-// frontend/src/App.jsx
-import React, { useState, useEffect } from 'react'; // Добавили useState, useEffect
+import React, { useState, useEffect } from 'react'; 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import './App.css';
-import { ethers } from 'ethers'; // Понадобится для провайдера
+import { ethers } from 'ethers';  
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import TradePage from './pages/TradePage';
 
 function App() {
   const [userAddress, setUserAddress] = useState(null);
@@ -39,8 +40,7 @@ function App() {
         setNavbarErrorMessage("MetaMask не найден.");
     }
   };
-
-  // Отслеживание смены аккаунта или сети (логика из Navbar)
+ 
   useEffect(() => {
       if (window.ethereum) {
           const handleAccountsChanged = (accounts) => {
@@ -56,8 +56,7 @@ function App() {
 
           window.ethereum.on('accountsChanged', handleAccountsChanged);
           window.ethereum.on('chainChanged', handleChainChanged);
-
-          // Проверка при загрузке
+ 
           const checkConnectedWallet = async () => {
               try {
                   const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -78,18 +77,39 @@ function App() {
 
   return (
     <div className="app-container">
-      <Navbar 
-        userAddress={userAddress} 
-        connectWallet={handleConnectWallet} 
-        // errorMessage из Navbar теперь обрабатывается в App, если нужно его глобально показывать
-      />
-      <main className="main-content">
-        <HomePage 
-            isWalletConnected={!!userAddress} 
-            provider={provider} 
-            signer={signer}
-        />
-      </main>
+      <BrowserRouter>  
+        <div className="app-container">
+          <Navbar 
+            userAddress={userAddress} 
+            connectWallet={handleConnectWallet} 
+            navbarErrorMessage={navbarErrorMessage}
+          />
+          <main className="main-content">
+            <Routes>  
+              <Route 
+                  path="/" 
+                  element={
+                      <HomePage 
+                          isWalletConnected={!!userAddress} 
+                          provider={provider} 
+                          signer={signer} 
+                      />
+                  } 
+              />
+              <Route 
+                  path="/trade" 
+                  element={
+                      <TradePage 
+                          isWalletConnected={!!userAddress} 
+                          provider={provider} 
+                          signer={signer} 
+                      />
+                  } 
+              />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
     </div>
   );
 }
