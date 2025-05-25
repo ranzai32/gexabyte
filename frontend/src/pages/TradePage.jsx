@@ -1,15 +1,17 @@
-// frontend/src/pages/TradePage.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
-import TokenSelectorDropdown from '../components/TokenSelectorDropdown'; // Убедитесь, что путь правильный
-import './TradePage.css'; // Стили для этой страницы, которые мы создавали
-// Можно импортировать стили виджета, если они общие и вынесены
-// import '../components/SwapWidget.css';
+import TokenSelectorDropdown from '../components/TokenSelectorDropdown';
+import './TradePage.css';
 
+const ERC20_ABI = [
+    "function approve(address spender, uint256 amount) external returns (bool)",
+    "function allowance(address owner, address spender) external view returns (uint256)",
+    "function balanceOf(address account) external view returns (uint256)"
+];
 
-// Скопируйте PREDEFINED_TOKENS и tokenKeys из SwapWidget.jsx
-// или импортируйте из общего файла (рекомендуется)
+const SWAP_ROUTER_ABI_MINIMAL = [{"inputs":[{"internalType":"address","name":"_factoryV2","type":"address"},{"internalType":"address","name":"factoryV3","type":"address"},{"internalType":"address","name":"_positionManager","type":"address"},{"internalType":"address","name":"_WETH9","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[],"name":"WETH9","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"approveMax","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"approveMaxMinusOne","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"approveZeroThenMax","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"approveZeroThenMaxMinusOne","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"bytes","name":"data","type":"bytes"}],"name":"callPositionManager","outputs":[{"internalType":"bytes","name":"result","type":"bytes"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"bytes[]","name":"paths","type":"bytes[]"},{"internalType":"uint128[]","name":"amounts","type":"uint128[]"},{"internalType":"uint24","name":"maximumTickDivergence","type":"uint24"},{"internalType":"uint32","name":"secondsAgo","type":"uint32"}],"name":"checkOracleSlippage","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes","name":"path","type":"bytes"},{"internalType":"uint24","name":"maximumTickDivergence","type":"uint24"},{"internalType":"uint32","name":"secondsAgo","type":"uint32"}],"name":"checkOracleSlippage","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"components":[{"internalType":"bytes","name":"path","type":"bytes"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMinimum","type":"uint256"}],"internalType":"struct IV3SwapRouter.ExactInputParams","name":"params","type":"tuple"}],"name":"exactInput","outputs":[{"internalType":"uint256","name":"amountOut","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMinimum","type":"uint256"},{"internalType":"uint160","name":"sqrtPriceLimitX96","type":"uint160"}],"internalType":"struct IV3SwapRouter.ExactInputSingleParams","name":"params","type":"tuple"}],"name":"exactInputSingle","outputs":[{"internalType":"uint256","name":"amountOut","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"bytes","name":"path","type":"bytes"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amountOut","type":"uint256"},{"internalType":"uint256","name":"amountInMaximum","type":"uint256"}],"internalType":"struct IV3SwapRouter.ExactOutputParams","name":"params","type":"tuple"}],"name":"exactOutput","outputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amountOut","type":"uint256"},{"internalType":"uint256","name":"amountInMaximum","type":"uint256"},{"internalType":"uint160","name":"sqrtPriceLimitX96","type":"uint160"}],"internalType":"struct IV3SwapRouter.ExactOutputSingleParams","name":"params","type":"tuple"}],"name":"exactOutputSingle","outputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"factoryV2","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"getApprovalType","outputs":[{"internalType":"enum IApproveAndCall.ApprovalType","name":"","type":"uint8"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"}],"internalType":"struct IApproveAndCall.IncreaseLiquidityParams","name":"params","type":"tuple"}],"name":"increaseLiquidity","outputs":[{"internalType":"bytes","name":"result","type":"bytes"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickLower","type":"int24"},{"internalType":"int24","name":"tickUpper","type":"int24"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"internalType":"struct IApproveAndCall.MintParams","name":"params","type":"tuple"}],"name":"mint","outputs":[{"internalType":"bytes","name":"result","type":"bytes"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"bytes32","name":"previousBlockhash","type":"bytes32"},{"internalType":"bytes[]","name":"data","type":"bytes[]"}],"name":"multicall","outputs":[{"internalType":"bytes[]","name":"","type":"bytes[]"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"bytes[]","name":"data","type":"bytes[]"}],"name":"multicall","outputs":[{"internalType":"bytes[]","name":"","type":"bytes[]"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"bytes[]","name":"data","type":"bytes[]"}],"name":"multicall","outputs":[{"internalType":"bytes[]","name":"results","type":"bytes[]"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"positionManager","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"pull","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"refundETH","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermit","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowed","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowedIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"address[]","name":"path","type":"address[]"},{"internalType":"address","name":"to","type":"address"}],"name":"swapExactTokensForTokens","outputs":[{"internalType":"uint256","name":"amountOut","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountOut","type":"uint256"},{"internalType":"uint256","name":"amountInMax","type":"uint256"},{"internalType":"address[]","name":"path","type":"address[]"},{"internalType":"address","name":"to","type":"address"}],"name":"swapTokensForExactTokens","outputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"sweepToken","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"}],"name":"sweepToken","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"uint256","name":"feeBips","type":"uint256"},{"internalType":"address","name":"feeRecipient","type":"address"}],"name":"sweepTokenWithFee","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"feeBips","type":"uint256"},{"internalType":"address","name":"feeRecipient","type":"address"}],"name":"sweepTokenWithFee","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"int256","name":"amount0Delta","type":"int256"},{"internalType":"int256","name":"amount1Delta","type":"int256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"uniswapV3SwapCallback","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"unwrapWETH9","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"}],"name":"unwrapWETH9","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"feeBips","type":"uint256"},{"internalType":"address","name":"feeRecipient","type":"address"}],"name":"unwrapWETH9WithFee","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"uint256","name":"feeBips","type":"uint256"},{"internalType":"address","name":"feeRecipient","type":"address"}],"name":"unwrapWETH9WithFee","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"value","type":"uint256"}],"name":"wrapETH","outputs":[],"stateMutability":"payable","type":"function"},{"stateMutability":"payable","type":"receive"}];
+
 const PREDEFINED_TOKENS = {
     WETH: { address: '0xfff9976782d46cc05630d1f6ebab18b2324d6b14', symbol: 'WETH', decimals: 18, logoURI: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png?1696501628' },
     USDC: { address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', symbol: 'USDC', decimals: 6, logoURI: 'https://assets.coingecko.com/coins/images/6319/small/usdc.png?1696506694' },
@@ -20,29 +22,41 @@ const PREDEFINED_TOKENS = {
     LINK: { address: '0x779877A7B0D9E8603169DdbD7836e478b4624789', symbol: 'LINK', decimals: 18, logoURI: 'https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png?1696502009' }
 };
 const tokenKeys = Object.keys(PREDEFINED_TOKENS);
-
 const findTokenIndexByAddress = (address) => tokenKeys.findIndex(key => PREDEFINED_TOKENS[key].address.toLowerCase() === address?.toLowerCase());
 
+const initialFromTokenSymbol = 'WETH';
+const initialToTokenSymbol = 'USDC';
+let initialFromIndex = findTokenIndexByAddress(PREDEFINED_TOKENS[initialFromTokenSymbol]?.address);
+if (initialFromIndex === -1 && tokenKeys.length > 0) initialFromIndex = 0;
+let initialToIndex = findTokenIndexByAddress(PREDEFINED_TOKENS[initialToTokenSymbol]?.address);
+if (initialToIndex === -1 && tokenKeys.length > 0) {
+    initialToIndex = (initialFromIndex + 1) % tokenKeys.length;
+}
+if (tokenKeys.length > 1 && initialFromIndex === initialToIndex) {
+    initialToIndex = (initialFromIndex + 1) % tokenKeys.length;
+}
 
-function TradePage({ isWalletConnected, provider, signer }) { // Получаем пропсы из App.jsx
+function TradePage({ isWalletConnected, provider, signer }) {
     const location = useLocation();
     const navigate = useNavigate();
     const initialSwapParams = location.state;
 
-    // Инициализация состояний на основе initialSwapParams
     const [tokenFromIndex, setTokenFromIndex] = useState(() => {
         const idx = findTokenIndexByAddress(initialSwapParams?.tokenFrom?.address);
-        return idx !== -1 ? idx : (tokenKeys.length > 0 ? 0 : -1) ; // По умолчанию первый токен, если ничего не передано
+        return idx !== -1 ? idx : initialFromIndex;
     });
     const [tokenToIndex, setTokenToIndex] = useState(() => {
         let idx = findTokenIndexByAddress(initialSwapParams?.tokenTo?.address);
-        if (idx === -1) { // Если токен To не передан или не найден
-            idx = (tokenFromIndex + 1) % tokenKeys.length;
+        const currentFromIdx = findTokenIndexByAddress(initialSwapParams?.tokenFrom?.address);
+        const defaultFromIdx = currentFromIdx !== -1 ? currentFromIdx : initialFromIndex;
+
+        if (idx === -1) {
+            idx = (defaultFromIdx + 1) % tokenKeys.length;
         }
-        if (tokenKeys.length > 1 && idx === tokenFromIndex) { // Гарантируем, что не совпадают
+        if (tokenKeys.length > 1 && idx === defaultFromIdx) {
             idx = (idx + 1) % tokenKeys.length;
         }
-        return idx !== -1 ? idx : (tokenKeys.length > 1 ? 1 : 0);
+        return idx !== -1 ? idx : initialToIndex;
     });
 
     const [amountFrom, setAmountFrom] = useState(initialSwapParams?.amountFrom || '');
@@ -50,26 +64,21 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
     const [loadingQuote, setLoadingQuote] = useState(false);
     const [showDropdownFrom, setShowDropdownFrom] = useState(false);
     const [showDropdownTo, setShowDropdownTo] = useState(false);
-
     const dropdownFromRef = useRef(null);
     const dropdownToRef = useRef(null);
-
     const availableFeeTiers = [500, 3000, 10000];
     const [selectedFeeTier, setSelectedFeeTier] = useState(initialSwapParams?.feeTier || availableFeeTiers[1]);
+    const [isSwapping, setIsSwapping] = useState(false);
+    const [swapTxHash, setSwapTxHash] = useState('');
+    const [swapStatusMessage, setSwapStatusMessage] = useState('');
+    const [selectedSlippage, setSelectedSlippage] = useState(0.5);
+    const [transactionDeadlineMinutes, setTransactionDeadlineMinutes] = useState(20);
 
     const getTokenByIndex = (index) => (index >= 0 && index < tokenKeys.length) ? PREDEFINED_TOKENS[tokenKeys[index]] : null;
     
-    let currentTokenFrom = getTokenByIndex(tokenFromIndex);
-    let currentTokenTo = getTokenByIndex(tokenToIndex);
-    
-    // Этот useEffect для обновления currentTokenFrom/To при изменении индексов
-    useEffect(() => {
-        currentTokenFrom = getTokenByIndex(tokenFromIndex);
-        currentTokenTo = getTokenByIndex(tokenToIndex);
-    }, [tokenFromIndex, tokenToIndex]);
+    const currentTokenFrom = getTokenByIndex(tokenFromIndex);
+    const currentTokenTo = getTokenByIndex(tokenToIndex);
 
-
-    // useEffect для закрытия дропдаунов
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownFromRef.current && !dropdownFromRef.current.contains(event.target) && !event.target.closest('.token-select-btn-from-trade')) { setShowDropdownFrom(false); }
@@ -90,17 +99,15 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
         const oldTokenFromIndex = tokenFromIndex;
         setTokenFromIndex(tokenToIndex);
         setTokenToIndex(oldTokenFromIndex);
-        setAmountFrom(amountTo); // amountTo (старое) становится новым amountFrom
-        // amountTo будет пересчитан useEffect'ом
+        setAmountFrom(amountTo);
+        setAmountTo(amountFrom);
     };
 
     const getQuote = async (fromTokenObj, toTokenObj, currentAmountFromStr, fee) => {
-        // ... (Ваша существующая функция getQuote, делающая запрос к /api/quote)
         const currentAmountNum = parseFloat(currentAmountFromStr);
         if (currentAmountNum <= 0 || !fromTokenObj || !toTokenObj ) { setAmountTo(''); setLoadingQuote(false); return; }
         if (fromTokenObj.address === toTokenObj.address) { setAmountTo(currentAmountFromStr); setLoadingQuote(false); return; }
-        console.log(`TradePage: Запрос котировки: ${currentAmountFromStr} ${fromTokenObj.symbol} на ${toTokenObj.symbol} с fee ${fee}`);
-        setLoadingQuote(true); setAmountTo("Рассчитывается...");
+        setLoadingQuote(true); setAmountTo("Counting...");
         try {
             const amountInWei = ethers.parseUnits(currentAmountFromStr, fromTokenObj.decimals).toString();
             const queryParams = new URLSearchParams({
@@ -110,14 +117,14 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
             });
             const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
             const response = await fetch(`${backendUrl}/api/quote?${queryParams.toString()}`);
-            if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || `Ошибка сети: ${response.status}`); }
+            if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || `Network error: ${response.status}`); }
             const data = await response.json();
             if (data.amountTo) {
                 const formattedAmountTo = ethers.formatUnits(data.amountTo, toTokenObj.decimals);
                 const displayAmountTo = parseFloat(formattedAmountTo).toFixed(Math.min(toTokenObj.decimals, 6));
                 setAmountTo(displayAmountTo);
-            } else { throw new Error("Ответ API не содержит amountTo"); }
-        } catch (error) { console.error("Ошибка при получении котировки в TradePage:", error); setAmountTo("Ошибка");
+            } else { throw new Error("API response missing amountTo"); }
+        } catch (error) { console.error("Error fetching quote in TradePage:", error); setAmountTo("Error");
         } finally { setLoadingQuote(false); }
     };
     
@@ -143,57 +150,83 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
         }
     };
 
-    const handleFeeTierSelect = (fee) => {
-        setSelectedFeeTier(fee);
-        // getQuote вызовется автоматически благодаря useEffect
-    };
+    const handleFeeTierSelect = (fee) => setSelectedFeeTier(fee);
 
     const handleConfirmSwap = async () => {
-        if (!isWalletConnected || !signer || !currentTokenFrom || !currentTokenTo || !amountFrom || !amountTo || amountTo === "Ошибка") {
-            alert("Пожалуйста, подключите кошелек и убедитесь, что все параметры обмена корректны.");
+        if (!isWalletConnected || !signer || !currentTokenFrom || !currentTokenTo || !amountFrom || !amountTo || amountTo === "Error" || isSwapping) {
+            setSwapStatusMessage("Please connect wallet and ensure all swap parameters are correct.");
             return;
         }
-        console.log("Подтверждение обмена со следующими параметрами:");
-        console.log("From:", amountFrom, currentTokenFrom.symbol);
-        console.log("To (estimated):", amountTo, currentTokenTo.symbol);
-        console.log("Selected Fee Tier:", selectedFeeTier);
-        // Здесь будет логика подготовки и отправки транзакции обмена
-        alert("Функционал Confirm Swap в разработке!");
+        setIsSwapping(true); setSwapTxHash(''); setSwapStatusMessage('Initiating swap...');
+        try {
+            const userAddr = await signer.getAddress();
+            const routerAddress = import.meta.env.VITE_UNISWAP_V3_SWAP_ROUTER_ADDRESS;
+            if (!routerAddress) throw new Error("Swap Router address not configured (VITE_UNISWAP_V3_SWAP_ROUTER_ADDRESS).");
+            const tokenFromContract = new ethers.Contract(currentTokenFrom.address, ERC20_ABI, signer);
+            const amountInWei = ethers.parseUnits(amountFrom, currentTokenFrom.decimals);
+            setSwapStatusMessage(`Checking allowance for ${currentTokenFrom.symbol}...`);
+            const currentAllowance = await tokenFromContract.allowance(userAddr, routerAddress);
+            if (currentAllowance < amountInWei) {
+                setSwapStatusMessage(`Approving ${currentTokenFrom.symbol}...`);
+                const approveTx = await tokenFromContract.approve(routerAddress, amountInWei);
+                setSwapStatusMessage(`Approval sent: ${approveTx.hash.substring(0,10)}... Waiting...`);
+                await approveTx.wait(1);
+                setSwapStatusMessage(`${currentTokenFrom.symbol} approved!`);
+            } else {
+                setSwapStatusMessage(`${currentTokenFrom.symbol} allowance sufficient.`);
+            }
+            setSwapStatusMessage('Preparing swap...');
+            const swapRouterContract = new ethers.Contract(routerAddress, SWAP_ROUTER_ABI_MINIMAL, signer);
+            if (isNaN(parseFloat(amountTo))) throw new Error("Estimated output amount is invalid.");
+            const amountToWeiFromQuote = ethers.parseUnits(amountTo, currentTokenTo.decimals);
+            const slippageToleranceBips = Math.floor(selectedSlippage * 100);
+            const amountOutMinimum = amountToWeiFromQuote - (amountToWeiFromQuote * BigInt(slippageToleranceBips)) / 10000n;
+            const deadline = Math.floor(Date.now() / 1000) + (transactionDeadlineMinutes * 60);
+            const params = {
+                tokenIn: currentTokenFrom.address, tokenOut: currentTokenTo.address,
+                fee: selectedFeeTier, recipient: userAddr, deadline: deadline,
+                amountIn: amountInWei, amountOutMinimum: amountOutMinimum, sqrtPriceLimitX96: 0,
+            };
+            setSwapStatusMessage('Sending swap tx...');
+            const swapTx = await swapRouterContract.exactInputSingle(params);
+            setSwapTxHash(swapTx.hash);
+            setSwapStatusMessage(`Swap sent: ${swapTx.hash.substring(0,10)}... Waiting...`);
+            const receipt = await swapTx.wait(1);
+            if (receipt.status === 1) {
+                setSwapStatusMessage(`Swap successful! Tx: ${swapTx.hash.substring(0,10)}...`);
+            } else {
+                throw new Error("Swap transaction failed (reverted).");
+            }
+        } catch (error) {
+            console.error("Swap error in TradePage:", error);
+            let errMsg = error.reason || error.message || "Unknown swap error.";
+            if (error.data && typeof error.data.message === 'string') errMsg = error.data.message;
+            else if (error.error && typeof error.error.message === 'string') errMsg = error.error.message;
+            setSwapStatusMessage(`Swap failed: ${errMsg}`);
+        } finally {
+            setIsSwapping(false);
+        }
     };
+    
+    let confirmButtonText = "Enter an amount";
+    let confirmButtonDisabled = true;
+    if (!isWalletConnected) { confirmButtonText = "Connect Wallet"; confirmButtonDisabled = true; }
+    else if (!currentTokenFrom || !currentTokenTo || currentTokenFrom.address === currentTokenTo.address) { confirmButtonText = "Select different tokens"; confirmButtonDisabled = true; }
+    else if (parseFloat(amountFrom) <= 0 || !amountFrom) { confirmButtonText = "Enter an amount"; confirmButtonDisabled = true; }
+    else if (loadingQuote) { confirmButtonText = "Getting price..."; confirmButtonDisabled = true; }
+    else if (!amountTo || amountTo === "Error") { confirmButtonText = "Price unavailable"; confirmButtonDisabled = true; }
+    else if (isSwapping) { confirmButtonText = "Processing..."; confirmButtonDisabled = true; }
+    else { confirmButtonText = "Confirm Swap"; confirmButtonDisabled = false; }
 
-    // Если параметры не пришли или токены не определились
     if ((!initialSwapParams && (tokenFromIndex === -1 || tokenToIndex === -1)) || !currentTokenFrom || !currentTokenTo) {
         return (
             <div className="trade-page-container">
                 <div className="trade-page-content">
-                    <p className="no-params-message">Не удалось загрузить параметры обмена. Пожалуйста, вернитесь на главную страницу.</p>
-                    <button onClick={() => navigate('/')} className="confirm-swap-button">На главную</button>
+                    <p className="no-params-message">Could not load swap parameters. Please start from the homepage.</p>
+                    <button onClick={() => navigate('/')} className="confirm-swap-button">Go to Home</button>
                 </div>
             </div>
         );
-    }
-
-    let confirmButtonText = "Enter an amount";
-    let confirmButtonDisabled = true;
-
-    if (!isWalletConnected) {
-        confirmButtonText = "Connect Wallet to Swap";
-        confirmButtonDisabled = true;
-    } else if (currentTokenFrom.address === currentTokenTo.address) {
-        confirmButtonText = "Select different tokens";
-        confirmButtonDisabled = true;
-    } else if (parseFloat(amountFrom) <= 0 || !amountFrom) {
-        confirmButtonText = "Enter an amount";
-        confirmButtonDisabled = true;
-    } else if (loadingQuote) {
-        confirmButtonText = "Getting price...";
-        confirmButtonDisabled = true;
-    } else if (!amountTo || amountTo === "Ошибка") {
-        confirmButtonText = "Price unavailable";
-        confirmButtonDisabled = true;
-    } else {
-        confirmButtonText = "Confirm Swap";
-        confirmButtonDisabled = false;
     }
 
     return (
@@ -201,7 +234,6 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
             <div className="trade-page-content">
                 <h2>Swap</h2>
 
-                {/* Блок ввода "From" */}
                 <div className="swap-token-input-container">
                     <label htmlFor="trade-from-amount">From</label>
                     <div className="swap-token-input">
@@ -226,12 +258,10 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
                     </div>
                 </div>
 
-                {/* Кнопка смены направления */}
                 <div className="swap-arrow-container">
-                    <button onClick={handleSwapDirection} className="swap-direction-btn" title="Поменять токены местами">↓</button>
+                    <button onClick={handleSwapDirection} className="swap-direction-btn" title="Swap tokens">↓</button>
                 </div>
 
-                {/* Блок ввода "To" */}
                 <div className="swap-token-input-container">
                     <label htmlFor="trade-to-amount">To (estimated)</label>
                     <div className="swap-token-input">
@@ -251,13 +281,12 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
                         </div>
                         <input
                             type="text" inputMode="decimal" id="trade-to-amount" placeholder="0.00"
-                            value={loadingQuote ? "Рассчитывается..." : amountTo} disabled className="amount-input-field"
+                            value={loadingQuote ? "Counting..." : amountTo} disabled className="amount-input-field"
                         />
                     </div>
                 </div>
 
-                {/* Выбор Fee Tier */}
-                <div className="fee-tier-selector">
+                <div className="settings-section fee-tier-selector">
                     <span className="trade-summary-label">Pool Fee Tier:</span>
                     <div className="fee-tier-options">
                         {availableFeeTiers.map(fee => (
@@ -271,15 +300,69 @@ function TradePage({ isWalletConnected, provider, signer }) { // Получае�
                         ))}
                     </div>
                 </div>
-                
-                {/* TODO: Отобразить детали котировки: цена, slippage, route */}
-                {/* Например:
-                <div className="trade-summary-item">
-                    <span className="trade-summary-label">Price:</span>
-                    <span className="trade-summary-value">1 {currentTokenFrom?.symbol} = {calculatedPrice} {currentTokenTo?.symbol}</span>
-                </div>
-                */}
 
+                <div className="settings-section slippage-settings">
+                    <span className="trade-summary-label">Slippage Tolerance:</span>
+                    <div className="slippage-options">
+                        {[0.1, 0.5, 1.0].map(val => (
+                            <button 
+                                key={val}
+                                onClick={() => setSelectedSlippage(val)}
+                                className={selectedSlippage === val ? 'active' : ''}
+                            >
+                                {val}%
+                            </button>
+                        ))}
+                        <div className="slippage-input-group">
+                            <input 
+                                type="number" 
+                                value={selectedSlippage}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    if (!isNaN(val) && val >= 0.01 && val <= 50) {
+                                        setSelectedSlippage(val);
+                                    } else if (e.target.value === '') {
+                                        setSelectedSlippage('');
+                                    }
+                                }}
+                                className="slippage-input"
+                                step="0.1" min="0.01"
+                            />
+                            <span>%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="settings-section deadline-settings">
+                    <span className="trade-summary-label">Transaction Deadline:</span>
+                    <div className="deadline-input-group">
+                        <input 
+                            type="number" 
+                            value={transactionDeadlineMinutes}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val) && val >= 1) {
+                                    setTransactionDeadlineMinutes(val);
+                                } else if (e.target.value === '') {
+                                    setTransactionDeadlineMinutes('');
+                                }
+                            }}
+                            className="deadline-input"
+                            min="1"
+                        />
+                        <span>minutes</span>
+                    </div>
+                </div>
+                
+                {swapStatusMessage && <div className="trade-summary-item swap-status-message" style={{ color: swapTxHash && !swapStatusMessage.toLowerCase().includes('fail') ? 'green' : (swapStatusMessage.toLowerCase().includes('fail') || swapStatusMessage.toLowerCase().includes('error') ? 'red' : '#c3c0d0') }}>{swapStatusMessage}</div>}
+                {swapTxHash && !swapStatusMessage.toLowerCase().includes('fail') && !swapStatusMessage.toLowerCase().includes('error') && (
+                    <div className="trade-summary-item" style={{justifyContent: 'center'}}>
+                        <a href={`https://sepolia.etherscan.io/tx/${swapTxHash}`} target="_blank" rel="noopener noreferrer" style={{color: '#85c9ff'}}>
+                            View Transaction
+                        </a>
+                    </div>
+                )}
+                
                 <button 
                     className="confirm-swap-button" 
                     onClick={handleConfirmSwap}

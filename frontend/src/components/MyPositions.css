@@ -1,0 +1,110 @@
+/* frontend/src/components/MyPositions.css */
+.my-positions-container {
+    /* Стили для контейнера списка позиций */
+}
+
+.my-positions-container h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.position-input-area {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    align-items: center;
+}
+
+.position-input-area input[type="text"] {
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    background-color: #27262c;
+    border: 1px solid #404058;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+}
+.position-input-area input[type="text"]:focus {
+    outline: none;
+    border-color: #7a6eaa;
+}
+
+.position-input-area button {
+    padding: 0.75rem 1.5rem;
+    background-color: #2172e5;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+.position-input-area button:hover:not(:disabled) {
+    background-color: #1b5db0;
+}
+.position-input-area button:disabled {
+    background-color: #353547;
+    color: #6c6c82;
+    cursor: not-allowed;
+}
+
+.position-card {
+    background-color: #353547;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #404058;
+}
+
+.position-card h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: #e0e0e0;
+}
+
+.position-card p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+    color: #c3c0d0;
+}
+
+.fees-info {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #4a4a6a;
+}
+.fees-info h5 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #a5a2b3;
+}
+
+.position-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.position-actions button {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    /* Стили как у других кнопок, можно вынести в общие */
+    background-color: #404058;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.position-actions button:hover {
+    background-color: #505068;
+}
+
+.error-message { /* Общий стиль для ошибок */
+    color: #e74c3c;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}

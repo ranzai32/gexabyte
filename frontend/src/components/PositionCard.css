@@ -1,0 +1,221 @@
+ 
+.position-card {
+    background-color: #353547; 
+    border: 1px solid #404058;  
+    border-radius: 16px;  
+    padding: 1.25rem 1.5rem;  
+    margin-bottom: 1.5rem; 
+    color: #e0e0e0;  
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;  
+}
+
+.position-card:hover {
+    box-shadow: 0 4px 20px rgba(33, 114, 229, 0.25);  
+    transform: translateY(-2px); */ 
+}
+
+.position-card.out-of-range {  
+    border-left: 5px solid #e74c3c;  
+}
+.position-card.in-range {  
+    border-left: 5px solid #27ae60;  
+}
+
+
+.position-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem; 
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #404058;
+}
+
+.token-pair {
+    display: flex;
+    align-items: center;
+}
+
+.token-logo-card {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #27262c; 
+    background-color: #27262c; 
+}
+
+.token-logo-card.second {
+    margin-left: -10px; 
+    z-index: 1;
+}
+.token-logo-card.first {
+    z-index: 2;
+}
+
+
+.pair-symbols {
+    margin-left: 0.75rem; 
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.fee-tier-chip {
+    background-color: #27262c; 
+    color: #a5a2b3;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-chip { 
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-left: 0.5rem;  
+}
+.status-chip.in-range {
+    background-color: rgba(39, 174, 96, 0.2); 
+    color: #27ae60; 
+}
+.status-chip.out-of-range-chip { 
+    background-color: rgba(231, 76, 60, 0.2); 
+    color: #e74c3c; 
+}
+
+
+.position-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+    gap: 0.75rem 1.5rem; 
+    margin-bottom: 0.5rem;
+}
+
+.position-info-grid > div { 
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 0.8rem;
+    color: #a5a2b3; 
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+}
+
+.info-value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #e0e0e0;
+}
+.info-value.small { 
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
+
+.uncollected-fees {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #4a4a6a; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; 
+    gap: 0.5rem;
+}
+
+.uncollected-fees .info-label {
+    margin-bottom: 0;
+    flex-basis: 100%; 
+    font-weight: bold;  
+}
+
+.fee-values {  
+    display: flex;
+    flex-direction: column;  
+    gap: 0.25rem;
+    flex-grow: 1;  
+}
+
+.fee-values span {
+    font-size: 0.95rem;
+}
+
+.collect-fees-btn-small {  
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    background-color: #2172e5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;  
+}
+
+.collect-fees-btn-small:hover {
+    background-color: #1b5db0;
+}
+
+.position-card-actions {
+    margin-top: 1.25rem;  
+    display: flex;
+    gap: 1rem;  
+    justify-content: flex-end;  
+}
+
+.position-card-actions .action-button {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    border: 1px solid transparent; 
+}
+
+.position-card-actions .action-button.manage {
+    background-color: #2172e5;  
+    color: white;
+}
+.position-card-actions .action-button.manage:hover {
+    background-color: #1b5db0;
+}
+
+.position-card-actions .action-button.auto-manage {  
+    background-color: transparent;
+    color: #85c9ff; 
+    border: 1px solid #404058;
+}
+.position-card-actions .action-button.auto-manage:hover {
+    border-color: #85c9ff;
+    background-color: rgba(133, 201, 255, 0.1);
+}
+
+.position-card.loading {  
+    text-align: center;
+    color: #a5a2b3;
+    min-height: 150px;  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.collect-fees-btn-small:disabled {
+    background-color: #353547;
+    color: #6c6c82;
+    cursor: not-allowed;
+}
+
+.collect-status-message {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    text-align: center;
+    width: 100%;
+    color: #a5a2b3;  
+}

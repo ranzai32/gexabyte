@@ -5,6 +5,7 @@ import './App.css';
 import { ethers } from 'ethers';  
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import TradePage from './pages/TradePage';
+import EarnPage from './pages/EarnPage';
 
 function App() {
   const [userAddress, setUserAddress] = useState(null);
@@ -105,6 +106,17 @@ function App() {
                           signer={signer} 
                       />
                   } 
+              />
+              <Route 
+                path="/earn" 
+                element={ 
+                    <EarnPage 
+                        isWalletConnected={!!userAddress} 
+                        provider={provider} 
+                        signer={signer}
+                        userAddress={userAddress}  
+                    /> 
+                } 
               />
             </Routes>
           </main>

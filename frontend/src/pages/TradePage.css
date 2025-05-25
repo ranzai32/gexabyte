@@ -164,19 +164,114 @@
     border-radius: 50%;
 }
 
-.fee-tier-selector,
-.slippage-settings {
-    margin-top: 0.5rem;
-    padding: 0.75rem;
-    background-color: #27262c;
+.settings-section {  
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;  
+    background-color: #27262c;  
     border-radius: 10px;
+    border: 1px solid #404058; 
 }
 
-.fee-tier-selector .trade-summary-label,
-.slippage-settings .trade-summary-label {
+.settings-section .trade-summary-label {  
     display: block;
     margin-bottom: 0.75rem;
     font-weight: 500;
+    color: #c3c0d0;  
+}
+ 
+.slippage-options {
+    display: flex;
+    align-items: center;  
+    gap: 0.5rem;  
+    flex-wrap: nowrap;  
+                       
+}
+
+.slippage-options button {  
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #404058;
+    background-color: #353547;
+    color: #c3c0d0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.slippage-options button:hover {
+    border-color: #7a6eaa;
+    color: white;
+}
+
+.slippage-options button.active {
+    background-color: #2172e5;
+    border-color: #2172e5;
+    color: white;
+    font-weight: bold;
+}
+
+.slippage-input-group {
+    display: flex;
+    align-items: center;
+    background-color: #353547;
+    border: 1px solid #404058;
+    border-radius: 8px;
+    padding: 0 0.5rem;
+    width: auto;  
+}
+
+.slippage-input {
+    width: 45px;  
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.25rem;
+    text-align: right;
+    /* -moz-appearance: textfield; */
+}
+.slippage-input::-webkit-outer-spin-button,
+.slippage-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.slippage-input-group span {  
+    color: #a5a2b3;
+    padding-left: 0.25rem;
+    font-size: 0.9rem;  
+}
+.deadline-input-group {
+    display: flex;
+    align-items: center;
+    background-color: #353547; 
+    border: 1px solid #404058;
+    border-radius: 8px;
+    padding: 0 0.75rem;  
+    max-width: 150px; 
+}
+
+.deadline-input {
+    width: 60px;  
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.25rem;
+    text-align: right;
+}
+.deadline-input::-webkit-outer-spin-button,
+.deadline-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.deadline-input-group span { 
+    color: #a5a2b3;
+    padding-left: 0.5rem;
+    font-size: 0.9rem;
 }
 
 .fee-tier-options {
@@ -184,7 +279,7 @@
     gap: 0.75rem;
 }
 
-.fee-tier-options button {
+.fee-tier-options button {  
     flex-grow: 1;
     padding: 0.6rem 0.5rem;
     border: 1px solid #404058;
@@ -207,7 +302,7 @@
     color: white;
     font-weight: bold;
 }
-
+ 
 .confirm-swap-button {
     background-color: #2172e5;
     color: white;
