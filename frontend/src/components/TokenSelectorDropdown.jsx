@@ -4,7 +4,7 @@ function TokenSelectorDropdown({
     tokens,  
     tokenKeys,  
     onSelectToken,  
-    currentSelectedKey, 
+    // currentSelectedKey, 
     otherSelectedKey    
 }) {
     if (!tokens || !tokenKeys) return null;

@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import TradePage from './pages/TradePage';
 import EarnPage from './pages/EarnPage';
+import ManageLiquidityPage from './pages/ManageLiquidityPage';
 
 function App() {
   const [userAddress, setUserAddress] = useState(null);
@@ -115,6 +116,17 @@ function App() {
                         provider={provider} 
                         signer={signer}
                         userAddress={userAddress}  
+                    /> 
+                } 
+              />
+              <Route 
+                path="/manage-liquidity/:tokenId"  
+                element={ 
+                    <ManageLiquidityPage 
+                        isWalletConnected={!!userAddress} 
+                        provider={provider} 
+                        signer={signer}
+                        userAddress={userAddress}
                     /> 
                 } 
               />

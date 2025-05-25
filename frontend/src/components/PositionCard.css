@@ -14,7 +14,7 @@
 
 .position-card:hover {
     box-shadow: 0 4px 20px rgba(33, 114, 229, 0.25);  
-    transform: translateY(-2px); */ 
+    transform: translateY(-2px); 
 }
 
 .position-card.out-of-range {  
@@ -192,6 +192,7 @@
     color: #85c9ff; 
     border: 1px solid #404058;
 }
+
 .position-card-actions .action-button.auto-manage:hover {
     border-color: #85c9ff;
     background-color: rgba(133, 201, 255, 0.1);

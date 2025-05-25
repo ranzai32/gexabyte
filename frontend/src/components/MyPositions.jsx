@@ -1,6 +1,6 @@
 // frontend/src/components/MyPositions.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 // import { ethers } from 'ethers'; // Необязателен здесь, если форматирование в PositionCard
 import PositionCard from './PositionCard';
 import './MyPositions.css';
@@ -61,7 +61,7 @@ function MyPositions({ isWalletConnected, provider, signer, userAddress }) {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     // const navigate = useNavigate(); // useNavigate пока не используется напрямую здесь, если управление через PositionCard
-
+    
     useEffect(() => {
         const fetchUserPositions = async () => {
             if (!isWalletConnected || !userAddress) {
@@ -81,6 +81,7 @@ function MyPositions({ isWalletConnected, provider, signer, userAddress }) {
                     try {
                         const errData = await response.json();
                         errorMsg = errData.error || errorMsg;
+                    // eslint-disable-next-line no-unused-vars
                     } catch (e) { /* остаемся с ursprünglichen сообщением */ }
                     throw new Error(errorMsg);
                 }

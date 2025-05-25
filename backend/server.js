@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const NodeCache = require( "node-cache" );
 const positionsCache = new NodeCache( { stdTTL: 120, checkperiod: 150 } );
+const { getTokenDetailsByAddressOnBackend } = require('./src/constants/predefinedTokens');
 
 // Импортируем необходимые части из вашей существующей конфигурации и утилит
 // Пути должны быть относительны server.js
@@ -200,30 +201,30 @@ app.get('/api/position-details/:tokenId', async (req, res) => {
 
     try {
         console.log(`[API /position-details] Запрос для tokenId: ${parsedTokenId}`);
-        // Для чтения данных используется provider из config.js
-        const positionInfoRaw = await getPositionDetails(parsedTokenId, provider);
+        const positionInfoRaw = await getPositionDetails(parsedTokenId, provider); //
 
         if (!positionInfoRaw || positionInfoRaw.token0 === '0x0000000000000000000000000000000000000000') {
             return res.status(404).json({ error: `Position with tokenId ${parsedTokenId} not found or invalid.` });
         }
-         
-        // Преобразуем BigInt в строки для JSON-сериализации там, где это необходимо
-        const positionInfo = {
-             nonce: positionInfoRaw.nonce.toString(),
-             operator: positionInfoRaw.operator,
-             token0: positionInfoRaw.token0,
-             token1: positionInfoRaw.token1,
-             fee: Number(positionInfoRaw.fee),
-             tickLower: Number(positionInfoRaw.tickLower),
-             tickUpper: Number(positionInfoRaw.tickUpper),
-             liquidity: positionInfoRaw.liquidity.toString(),
-             feeGrowthInside0LastX128: positionInfoRaw.feeGrowthInside0LastX128.toString(),
-             feeGrowthInside1LastX128: positionInfoRaw.feeGrowthInside1LastX128.toString(),
-             tokensOwed0: positionInfoRaw.tokensOwed0.toString(),
-             tokensOwed1: positionInfoRaw.tokensOwed1.toString()
+        
+        // Первоначальное формирование positionInfo с преобразованием BigInt в строки
+        let positionInfo = { // Используем let, так как будем добавлять currentTick
+            nonce: positionInfoRaw.nonce.toString(),
+            operator: positionInfoRaw.operator,
+            token0: positionInfoRaw.token0,
+            token1: positionInfoRaw.token1,
+            fee: Number(positionInfoRaw.fee),
+            tickLower: Number(positionInfoRaw.tickLower),
+            tickUpper: Number(positionInfoRaw.tickUpper),
+            liquidity: positionInfoRaw.liquidity.toString(),
+            feeGrowthInside0LastX128: positionInfoRaw.feeGrowthInside0LastX128.toString(),
+            feeGrowthInside1LastX128: positionInfoRaw.feeGrowthInside1LastX128.toString(),
+            tokensOwed0: positionInfoRaw.tokensOwed0.toString(),
+            tokensOwed1: positionInfoRaw.tokensOwed1.toString()
+            // currentTick будет добавлен ниже
         };
 
-        const feesRaw = await getUncollectedFees(parsedTokenId, provider);
+        const feesRaw = await getUncollectedFees(parsedTokenId, provider); //
         let fees = null;
         if (feesRaw) {
             fees = {
@@ -234,26 +235,50 @@ app.get('/api/position-details/:tokenId', async (req, res) => {
             }
         }
 
-        res.json({ positionInfo, fees });
+         
+        if (positionInfoRaw.token0 && positionInfoRaw.token0 !== ethers.ZeroAddress && positionInfoRaw.token1 && positionInfoRaw.token1 !== ethers.ZeroAddress) {
+             
+            const tokenDetails0 = await getTokenDetailsByAddressOnBackend(positionInfoRaw.token0); // Предполагается, что эта функция определена и работает
+            const tokenDetails1 = await getTokenDetailsByAddressOnBackend(positionInfoRaw.token1); // Предполагается, что эта функция определена и работает
+
+            if (tokenDetails0 && tokenDetails1) { // Убедимся, что детали токенов получены
+                const t0 = new UniswapToken(CHAIN_ID, positionInfoRaw.token0, tokenDetails0.decimals, tokenDetails0.symbol);
+                const t1 = new UniswapToken(CHAIN_ID, positionInfoRaw.token1, tokenDetails1.decimals, tokenDetails1.symbol);
+                
+                try {
+                    const poolData = await getPoolData(t0, t1, Number(positionInfoRaw.fee)); //
+                    if (poolData) {
+                        positionInfo.currentTick = poolData.tickCurrent; 
+                    } else {
+                        positionInfo.currentTick = null;
+                        console.warn(`[API /position-details] Pool data not found for position ${parsedTokenId}`);
+                    }
+                } catch (poolError) {
+                    positionInfo.currentTick = null;
+                    console.error(`[API /position-details] Error fetching pool data for position ${parsedTokenId}:`, poolError);
+                }
+            } else {
+                positionInfo.currentTick = null;
+                console.warn(`[API /position-details] Could not get token details for position ${parsedTokenId} to fetch pool data.`);
+            }
+        } else {
+            positionInfo.currentTick = null;  
+        }
+
+        res.json({ positionInfo, fees });  
+
     } catch (error) {
-        console.error(`[API /position-details] Error for tokenId ${parsedTokenId}:`, error.message);
+        console.error(`[API /position-details] Error for tokenId ${parsedTokenId}:`, error.message, error.stack); // Добавлен error.stack
         res.status(500).json({ error: "Failed to get position details", details: error.message });
     }
 });
 
 app.get('/api/user-positions/:userAddress', async (req, res) => {
     const { userAddress } = req.params;
-    const cacheKey = `user-positions-${userAddress}`;
-
-    if (positionsCache.has(cacheKey)) {
-        console.log(`[API /user-positions] Returning cached data for ${userAddress}`);
-        return res.json(positionsCache.get(cacheKey));
-    }
 
     if (!ethers.isAddress(userAddress)) {
         return res.status(400).json({ error: 'Invalid user address provided.' });
     }
-
     if (!UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS) {
         console.error("[API /user-positions] Error: UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS is not defined.");
         return res.status(500).json({ error: 'NFT Position Manager address not configured on server.' });
@@ -263,7 +288,7 @@ app.get('/api/user-positions/:userAddress', async (req, res) => {
     try {
         const positionManagerContract = new ethers.Contract(
             UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
-            INonfungiblePositionManagerABI, // Используем импортированный ABI
+            INonfungiblePositionManagerABI,
             provider
         );
 
@@ -272,33 +297,29 @@ app.get('/api/user-positions/:userAddress', async (req, res) => {
         console.log(`[API /user-positions] User ${userAddress} has ${numPositions} positions.`);
 
         if (numPositions === 0) {
-            return res.json([]); // Возвращаем пустой массив, если нет позиций
+            return res.json([]);
         }
 
         const positionsPromises = [];
         for (let i = 0; i < numPositions; i++) {
-            if (i > 0) {
-                await new Promise(resolve => setTimeout(resolve, 200)); // Задержка 200 мс
-            }
             positionsPromises.push(
                 (async () => {
                     try {
-                        const tokenId = await positionManagerContract.tokenOfOwnerByIndex(userAddress, i);
-                        const tokenIdNumber = parseInt(tokenId.toString());
-
-                        // Получаем детали и комиссии параллельно для ускорения
+                        const tokenIdBigInt = await positionManagerContract.tokenOfOwnerByIndex(userAddress, i);
+                        const tokenIdNumber = parseInt(tokenIdBigInt.toString());
+                        
                         const [positionInfoRaw, feesRaw] = await Promise.all([
-                            getPositionDetails(tokenIdNumber, provider), // Ваша существующая функция
-                            getUncollectedFees(tokenIdNumber, provider) // Ваша существующая функция
+                            getPositionDetails(tokenIdNumber, provider),
+                            getUncollectedFees(tokenIdNumber, provider)
                         ]);
 
                         if (!positionInfoRaw || positionInfoRaw.token0 === '0x0000000000000000000000000000000000000000') {
                             console.warn(`[API /user-positions] Could not fetch details for tokenId ${tokenIdNumber}`);
-                            return null; // Пропускаем, если детали не получены
+                            return null;
                         }
-                         // Преобразуем BigInt в строки для JSON
-                        const positionInfo = {
-                            tokenId: tokenIdNumber, // Добавляем tokenId в ответ
+                        
+                        let enrichedPositionInfo = {
+                            tokenId: tokenIdNumber,
                             nonce: positionInfoRaw.nonce.toString(),
                             operator: positionInfoRaw.operator,
                             token0: positionInfoRaw.token0,
@@ -310,8 +331,34 @@ app.get('/api/user-positions/:userAddress', async (req, res) => {
                             feeGrowthInside0LastX128: positionInfoRaw.feeGrowthInside0LastX128.toString(),
                             feeGrowthInside1LastX128: positionInfoRaw.feeGrowthInside1LastX128.toString(),
                             tokensOwed0: positionInfoRaw.tokensOwed0.toString(),
-                            tokensOwed1: positionInfoRaw.tokensOwed1.toString()
+                            tokensOwed1: positionInfoRaw.tokensOwed1.toString(),
+                            currentTick: null  
                         };
+ 
+                        if (enrichedPositionInfo.token0 && enrichedPositionInfo.token0 !== ethers.ZeroAddress && 
+                            enrichedPositionInfo.token1 && enrichedPositionInfo.token1 !== ethers.ZeroAddress) {
+                            
+                            const tokenDetails0 = await getTokenDetailsByAddressOnBackend(enrichedPositionInfo.token0);
+                            const tokenDetails1 = await getTokenDetailsByAddressOnBackend(enrichedPositionInfo.token1);
+
+                            if (tokenDetails0 && tokenDetails1) {
+                                const t0 = new UniswapToken(CHAIN_ID, enrichedPositionInfo.token0, tokenDetails0.decimals, tokenDetails0.symbol);
+                                const t1 = new UniswapToken(CHAIN_ID, enrichedPositionInfo.token1, tokenDetails1.decimals, tokenDetails1.symbol);
+                                
+                                try {
+                                    const poolData = await getPoolData(t0, t1, enrichedPositionInfo.fee); // Используем fee из enrichedPositionInfo
+                                    if (poolData) {
+                                        enrichedPositionInfo.currentTick = poolData.tickCurrent;
+                                    } else {
+                                        console.warn(`[API /user-positions] Pool data not found for position ${tokenIdNumber}`);
+                                    }
+                                } catch (poolError) {
+                                    console.error(`[API /user-positions] Error fetching pool data for position ${tokenIdNumber}:`, poolError);
+                                }
+                            } else {
+                                console.warn(`[API /user-positions] Could not get token details for position ${tokenIdNumber} to fetch pool data.`);
+                            }
+                        }
 
                         let fees = null;
                         if (feesRaw) {
@@ -322,27 +369,27 @@ app.get('/api/user-positions/:userAddress', async (req, res) => {
                                 feeToken1: feesRaw.feeToken1 ? { address: feesRaw.feeToken1.address, symbol: feesRaw.feeToken1.symbol, decimals: feesRaw.feeToken1.decimals } : null,
                             }
                         }
-                        return { positionInfo, fees, tokenId: tokenIdNumber }; // Убедимся, что tokenId всегда есть
+                        return { positionInfo: enrichedPositionInfo, fees, tokenId: tokenIdNumber };
                     } catch (tokenError) {
-                        console.error(`[API /user-positions] Error fetching data for a position:`, tokenError);
-                        return null;  
+                        console.error(`[API /user-positions] Error fetching data for one position:`, tokenError);
+                        return null;
                     }
                 })()
             );
         }
 
         const resolvedPositionsData = await Promise.all(positionsPromises);
-        const validPositionsData = resolvedPositionsData.filter(p => p !== null); // Убираем null, если были ошибки
+        const validPositionsData = resolvedPositionsData.filter(p => p !== null);
 
         console.log(`[API /user-positions] Returning ${validPositionsData.length} valid positions for ${userAddress}`);
-        positionsCache.set(cacheKey, validPositionsData);
         res.json(validPositionsData);
 
     } catch (error) {
-        console.error("[API /user-positions] Error:", error.message, error.stack);
+        console.error("[API /user-positions] Outer Error:", error.message, error.stack);
         res.status(500).json({ error: 'Failed to fetch user positions', details: error.message });
     }
 });
+
 
 
 // TODO: Добавить эндпоинты для операций, требующих подписи пользователя (они будут готовить параметры)
