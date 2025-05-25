@@ -162,3 +162,35 @@
     padding: 2rem;
     text-align: center;
 }
+
+.add-liquidity-input-group {
+    display: flex;
+    flex-direction: column;  
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.add-liquidity-input-group label {
+    font-size: 0.9rem;
+    color: #a5a2b3;
+}
+
+.add-liquidity-form .amount-input-field {  
+    width: 100%;  
+    padding: 0.75rem 1rem;
+    background-color: #27262c;
+    border: 1px solid #404058;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+}
+.add-liquidity-form .amount-input-field:focus {
+    outline: none;
+    border-color: #7a6eaa;
+}
+
+.info-text-small {
+    font-size: 0.8rem;
+    color: #888694;
+    margin-top: -0.5rem;  
+}

@@ -17,7 +17,7 @@ const TOKEN1_ADDRESS_ENV = process.env.TOKEN1_ADDRESS;
 
 
 if (!RPC_URL || !PRIVATE_KEY || !UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS || !UNISWAP_V3_FACTORY_ADDRESS || !TOKEN0_ADDRESS_ENV || !TOKEN1_ADDRESS_ENV) {
-    console.error("ОШИБКА в config.js: Одна или несколько обязательных переменных окружения не установлены.");
+     
     process.exit(1);
 }
 

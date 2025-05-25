@@ -1,4 +1,3 @@
- 
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
@@ -49,226 +48,9 @@ const PREDEFINED_TOKENS_LIST_MANAGE = {
 };
 
 const ERC20_ABI = [
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "name",
-        "outputs": [
-            {
-                "name": "",
-                "type": "string"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_spender",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "approve",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "totalSupply",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_from",
-                "type": "address"
-            },
-            {
-                "name": "_to",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "transferFrom",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "decimals",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint8"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [
-            {
-                "name": "_owner",
-                "type": "address"
-            }
-        ],
-        "name": "balanceOf",
-        "outputs": [
-            {
-                "name": "balance",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "symbol",
-        "outputs": [
-            {
-                "name": "",
-                "type": "string"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_to",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "transfer",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [
-            {
-                "name": "_owner",
-                "type": "address"
-            },
-            {
-                "name": "_spender",
-                "type": "address"
-            }
-        ],
-        "name": "allowance",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "payable": true,
-        "stateMutability": "payable",
-        "type": "fallback"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "name": "spender",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "Approval",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "name": "from",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "name": "to",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "name": "value",
-                "type": "uint256"
-            }
-        ],
-        "name": "Transfer",
-        "type": "event"
-    }
+    "function approve(address spender, uint256 amount) external returns (bool)",
+    "function allowance(address owner, address spender) external view returns (uint256)",
+    "function balanceOf(address account) external view returns (uint256)"
 ];
 
 const INonfungiblePositionManagerABI_Manage = [{"inputs":[{"internalType":"address","name":"_factory","type":"address"},{"internalType":"address","name":"_WETH9","type":"address"},{"internalType":"address","name":"_tokenDescriptor_","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"recipient","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"Collect","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"uint128","name":"liquidity","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"DecreaseLiquidity","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"uint128","name":"liquidity","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"IncreaseLiquidity","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"WETH9","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approve","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"baseURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"pure","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"burn","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint128","name":"amount0Max","type":"uint128"},{"internalType":"uint128","name":"amount1Max","type":"uint128"}],"internalType":"struct INonfungiblePositionManager.CollectParams","name":"params","type":"tuple"}],"name":"collect","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint160","name":"sqrtPriceX96","type":"uint160"}],"name":"createAndInitializePoolIfNecessary","outputs":[{"internalType":"address","name":"pool","type":"address"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"internalType":"struct INonfungiblePositionManager.DecreaseLiquidityParams","name":"params","type":"tuple"}],"name":"decreaseLiquidity","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"components":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint256","name":"amount0Desired","type":"uint256"},{"internalType":"uint256","name":"amount1Desired","type":"uint256"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"internalType":"struct INonfungiblePositionManager.IncreaseLiquidityParams","name":"params","type":"tuple"}],"name":"increaseLiquidity","outputs":[{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"operator","type":"address"}],"name":"isApprovedForAll","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickLower","type":"int24"},{"internalType":"int24","name":"tickUpper","type":"int24"},{"internalType":"uint256","name":"amount0Desired","type":"uint256"},{"internalType":"uint256","name":"amount1Desired","type":"uint256"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"internalType":"struct INonfungiblePositionManager.MintParams","name":"params","type":"tuple"}],"name":"mint","outputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"bytes[]","name":"data","type":"bytes[]"}],"name":"multicall","outputs":[{"internalType":"bytes[]","name":"results","type":"bytes[]"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"positions","outputs":[{"internalType":"uint96","name":"nonce","type":"uint96"},{"internalType":"address","name":"operator","type":"address"},{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickLower","type":"int24"},{"internalType":"int24","name":"tickUpper","type":"int24"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"feeGrowthInside0LastX128","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside1LastX128","type":"uint256"},{"internalType":"uint128","name":"tokensOwed0","type":"uint128"},{"internalType":"uint128","name":"tokensOwed1","type":"uint128"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"refundETH","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermit","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowed","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowedIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"operator","type":"address"},{"internalType":"bool","name":"approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"bytes4","name":"interfaceId","type":"bytes4"}],"name":"supportsInterface","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"sweepToken","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenOfOwnerByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount0Owed","type":"uint256"},{"internalType":"uint256","name":"amount1Owed","type":"uint256"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"uniswapV3MintCallback","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"unwrapWETH9","outputs":[],"stateMutability":"payable","type":"function"},{"stateMutability":"payable","type":"receive"}];
@@ -283,194 +65,211 @@ const getTokenByAddressManage = (address) => {
 
 
 function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress }) {
-    const { tokenId } = useParams();  
-    const location = useLocation();  
+    const { tokenId } = useParams();
+    const location = useLocation();
     const navigate = useNavigate();
+    const initialSwapParams = location.state;
 
     const [positionInfo, setPositionInfo] = useState(location.state?.positionInfo || null);
     const [fees, setFees] = useState(location.state?.fees || null);
-    const [token0, setToken0] = useState(location.state?.token0 || null);
-    const [token1, setToken1] = useState(location.state?.token1 || null);
+    const [token0, setToken0] = useState(null); // Будут установлены в useEffect
+    const [token1, setToken1] = useState(null); // Будут установлены в useEffect
 
-    const [isLoading, setIsLoading] = useState(!positionInfo);  
+    const [isLoading, setIsLoading] = useState(!positionInfo);
     const [errorMessage, setErrorMessage] = useState('');
+    const [activeTab, setActiveTab] = useState('add');
 
-    // Состояния для вкладок Add/Remove
-    const [activeTab, setActiveTab] = useState('add');  
-
-    // Состояния для форм Add/Remove
     const [amountToAddToken0, setAmountToAddToken0] = useState('');
     const [amountToAddToken1, setAmountToAddToken1] = useState('');
-    const [removeLiquidityPercentage, setRemoveLiquidityPercentage] = useState(100); // По умолчанию 100%
+    const [removeLiquidityPercentage, setRemoveLiquidityPercentage] = useState(100);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [processStatus, setProcessStatus] = useState('');
-    // const [selectedSlippage, setSelectedSlippage] = useState(0.5); // По умолчанию 0.5%
+
+    const [selectedSlippage, setSelectedSlippage] = useState(0.5);
     const [transactionDeadlineMinutes, setTransactionDeadlineMinutes] = useState(20);
 
-    const fetchDetailsIfNeeded = async () => {
-             if (tokenId && provider) { // provider может быть не нужен, если вся логика на бэкенде
-                 setIsLoading(true);
-                 setErrorMessage('');
-                 try {
-                     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-                     const response = await fetch(`${backendUrl}/api/position-details/${tokenId}`);
-                     if (!response.ok) {
-                         const errData = await response.json();
-                         throw new Error(errData.error || `Failed to fetch position details: ${response.status}`);
-                     }
-                     const data = await response.json();
-                     if (data.positionInfo) {
-                         setPositionInfo(data.positionInfo);
-                         setFees(data.fees);
-                         setToken0(getTokenByAddressManage(data.positionInfo.token0));
-                         setToken1(getTokenByAddressManage(data.positionInfo.token1));
-                     } else {
-                         throw new Error(`Position details not found for tokenId ${tokenId}.`);
-                     }
-                 } catch (error) {
-                     console.error("Error fetching position details for manage page:", error);
-                     setErrorMessage(error.message);
-                 }
-                 finally {
-                     setIsLoading(false);
+    // Состояния для определения статуса диапазона
+    const [isInRange, setIsInRange] = useState(null); 
+    const [tokenSymbolToAddWhenOutOfRange, setTokenSymbolToAddWhenOutOfRange] = useState('');
+    const [tokenObjectToAddWhenOutOfRange, setTokenObjectToAddWhenOutOfRange] = useState(null);
+
+
+     const fetchDetailsIfNeeded = async () => {
+        if (tokenId && provider) { // provider может быть не нужен для этого запроса, если бэкенд сам все делает
+            setIsLoading(true);
+            setErrorMessage('');
+            try {
+                const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+                // ПРАВИЛЬНОЕ ФОРМИРОВАНИЕ URL:
+                const requestUrl = `${backendUrl}/api/position-details/${tokenId}`;
+                 
+
+                const response = await fetch(requestUrl);
+                
+                if (!response.ok) {
+                    let errorMsg = `Failed to fetch position details: ${response.status}`;
+                    try {
+                        const errData = await response.json();
+                        errorMsg = errData.error || errorMsg;
+                    } catch (e) { 
+                        // Если ответ не JSON, прочитаем как текст
+                        const textError = await response.text();
+                        console.error("Non-JSON error response from backend:", textError);
+                        errorMsg = textError || errorMsg; // Показываем HTML или текстовую ошибку, если есть
+                    }
+                    throw new Error(errorMsg);
+                }
+                const data = await response.json();
+                if (data.positionInfo) {
+                    setPositionInfo(data.positionInfo);
+                    setFees(data.fees);
+                    const fetchedToken0 = getTokenByAddressManage(data.positionInfo.token0);
+                    const fetchedToken1 = getTokenByAddressManage(data.positionInfo.token1);
+                    setToken0(fetchedToken0);
+                    setToken1(fetchedToken1);
+                } else {
+                    throw new Error(`Position details not found for tokenId ${tokenId}.`);
+                }
+            } catch (error) {
+                console.error("Error in fetchDetailsIfNeeded:", error);
+                setErrorMessage(error.message);
+            } finally {
+                setIsLoading(false);
             }
+        } else if (!tokenId) {
+            setErrorMessage("TokenId is not available to fetch details.");
+            setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        const fetchDetailsIfNeeded = async () => {
-            if (!positionInfo && tokenId && provider) { // Если нет state, загружаем
-                setIsLoading(true);
-                setErrorMessage('');
-                try {
-                    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-                    const response = await fetch(`<span class="math-inline">\{backendUrl\}/api/position\-details/</span>{tokenId}`);
-                    if (!response.ok) {
-                        const errData = await response.json();
-                        throw new Error(errData.error || `Failed to fetch position: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    if (data.positionInfo) {
-                        setPositionInfo(data.positionInfo);
-                        setFees(data.fees);
-                        setToken0(getTokenByAddressManage(data.positionInfo.token0));
-                        setToken1(getTokenByAddressManage(data.positionInfo.token1));
-                    } else {
-                        throw new Error(`Position with tokenId ${tokenId} not found.`);
-                    }
-                } catch (error) {
-                    console.error("Error fetching position details for manage page:", error);
-                    setErrorMessage(error.message);
-                } finally {
-                    setIsLoading(false);
-                }
-            } else if (positionInfo) { // Если данные пришли из state, просто установим токены
-                setToken0(getTokenByAddressManage(positionInfo.token0));
-                setToken1(getTokenByAddressManage(positionInfo.token1));
+        if (!positionInfo || positionInfo.tokenId?.toString() !== tokenId) { // Загружаем, если нет данных или tokenId изменился
+            fetchDetailsIfNeeded();
+        } else { // Если positionInfo уже есть (например, из location.state), просто установим токены
+            setToken0(getTokenByAddressManage(positionInfo.token0));
+            setToken1(getTokenByAddressManage(positionInfo.token1));
+            setIsLoading(false); // Убедимся, что загрузка завершена
+        }
+    }, [tokenId, provider]); // Убрали positionInfo из зависимостей, чтобы избежать лишних перезагрузок при его обновлении
+
+    // useEffect для определения isInRange и какой токен добавлять, если вне диапазона
+    useEffect(() => {
+        if (positionInfo && typeof positionInfo.currentTick === 'number' && token0 && token1) {
+            const currentTick = positionInfo.currentTick;
+            const tickLower = positionInfo.tickLower;
+            const tickUpper = positionInfo.tickUpper;
+             
+
+            if (currentTick > tickLower) {
+                setIsInRange(false);
+                setTokenSymbolToAddWhenOutOfRange(token1.symbol); // Добавляем Token1 (обычно более "дорогой")
+                setTokenObjectToAddWhenOutOfRange(token1);
+            } else if (currentTick < tickUpper) {
+                setIsInRange(false);
+                setTokenSymbolToAddWhenOutOfRange(token0.symbol); // Добавляем Token0 (обычно более "дешевый")
+                setTokenObjectToAddWhenOutOfRange(token0);
+            } else {
+                setIsInRange(true);
+                setTokenSymbolToAddWhenOutOfRange('');
+                setTokenObjectToAddWhenOutOfRange(null);
             }
-        };
-        fetchDetailsIfNeeded();
-    }, [tokenId, provider, positionInfo]); // Зависимость от positionInfo, чтобы не перезагружать, если уже есть
+            // Сбрасываем поля ввода при изменении статуса диапазона
+            setAmountToAddToken0('');
+            setAmountToAddToken1('');
+        } else {
+            setIsInRange(null);
+        }
+    }, [positionInfo, token0, token1]);
+
 
     const handleAddLiquidity = async () => {
-        if (!isWalletConnected || !signer || !userAddress || !positionInfo || !token0 || !token1 || isProcessing) {
-            setProcessStatus("Wallet not connected or position data unavailable.");
+         
+        if (!isWalletConnected || !signer || !userAddress || !positionInfo || !token0 || !token1 || isProcessing || isInRange === null) {
+            setProcessStatus("Wallet not connected, position data unavailable, or range status unknown.");
             return;
         }
 
-        // Пользователь вводит сумму для одного из токенов.
-        // Мы будем использовать ту, которая больше нуля. Если обе, можно взять token0.
         let amount0DesiredWei = 0n;
         let amount1DesiredWei = 0n;
-        let tokenToApprove = null;
-        let amountToApproveWei = 0n;
+        const enteredAmount0 = parseFloat(amountToAddToken0);
+        const enteredAmount1 = parseFloat(amountToAddToken1);
 
-        const parsedAmount0 = parseFloat(amountToAddToken0);
-        const parsedAmount1 = parseFloat(amountToAddToken1);
+        if (isInRange) { // Позиция В ДИАПАЗОНЕ
+            if (enteredAmount0 > 0 && enteredAmount1 > 0) {
+                amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
+                amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals);
+            } else if (enteredAmount0 > 0) {
+                amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
+                // amount1DesiredWei остается 0n, контракт или SDK рассчитает необходимое количество второго токена
+                // TODO: Для лучшего UX, здесь нужно рассчитать и показать amount1ToAdd
+                setProcessStatus(`For in-range positions, ideally both token amounts are provided or one is calculated from the other. Proceeding with ${token0.symbol} only.`);
+            } else if (enteredAmount1 > 0) {
+                amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals);
+                // amount0DesiredWei остается 0n
+                setProcessStatus(`For in-range positions, ideally both token amounts are provided or one is calculated from the other. Proceeding with ${token1.symbol} only.`);
+            } else {
+                setProcessStatus("Please enter an amount for at least one token.");
+                return;
+            }
+        } else { // Позиция ВНЕ ДИАПАЗОНА
+            if (tokenObjectToAddWhenOutOfRange?.address === token0.address && enteredAmount0 > 0) {
+                amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
+                amount1DesiredWei = 0n; // Добавляем только token0
+            } else if (tokenObjectToAddWhenOutOfRange?.address === token1.address && enteredAmount1 > 0) {
+                amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals);
+                amount0DesiredWei = 0n; // Добавляем только token1
+            } else {
+                setProcessStatus(`Please enter an amount for ${tokenSymbolToAddWhenOutOfRange}.`);
+                return;
+            }
+        }
 
-        if (parsedAmount0 > 0 && parsedAmount1 > 0) {
-            // Если введены обе суммы, это сложнее. Для простоты пока что потребуем ввод одной.
-            // Либо можно использовать обе, но тогда amount0Min и amount1Min должны быть рассчитаны аккуратно.
-            setProcessStatus("Please enter an amount for only one token to add, or implement logic for dual input.");
-             // return; // Раскомментируйте, если хотите строгую проверку на ввод только одной суммы
-            // Пока что, если введены обе, приоритет у Token0
-             amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
-             amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals); // Будет использоваться, если нужно
-             tokenToApprove = token0; // По умолчанию одобряем первый, если оба введены
-             amountToApproveWei = amount0DesiredWei;
-
-        } else if (parsedAmount0 > 0) {
-            amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
-            tokenToApprove = token0;
-            amountToApproveWei = amount0DesiredWei;
-            // amount1DesiredWei остается 0n, контракт рассчитает, сколько нужно
-        } else if (parsedAmount1 > 0) {
-            amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals);
-            tokenToApprove = token1;
-            amountToApproveWei = amount1DesiredWei;
-            // amount0DesiredWei остается 0n
-        } else {
-            setProcessStatus("Please enter a valid amount for at least one token.");
+        if (amount0DesiredWei <= 0n && amount1DesiredWei <= 0n) {
+            setProcessStatus("No amount specified to add.");
             return;
         }
 
         setIsProcessing(true);
         setProcessStatus(`Preparing to add liquidity...`);
-
         try {
+            const userAddr = await signer.getAddress(); 
             const nftManagerAddress = import.meta.env.VITE_UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS;
             if (!nftManagerAddress) throw new Error("NFT Position Manager address not configured.");
 
-            // Approve для токена, который добавляем (если его сумма > 0)
-            if (tokenToApprove && amountToApproveWei > 0n) {
-                setProcessStatus(`Checking allowance for ${tokenToApprove.symbol}...`);
-                const tokenContract = new ethers.Contract(tokenToApprove.address, ERC20_ABI, signer);
-                const currentAllowance = await tokenContract.allowance(userAddress, nftManagerAddress);
-
-                if (currentAllowance < amountToApproveWei) {
-                    setProcessStatus(`Approving ${tokenToApprove.symbol}...`);
-                    const approveTx = await tokenContract.approve(nftManagerAddress, amountToApproveWei);
-                    setProcessStatus(`Approval sent: ${approveTx.hash.substring(0,10)}... Waiting...`);
-                    await approveTx.wait(1);
-                    setProcessStatus(`${tokenToApprove.symbol} approved!`);
+            // Approve для token0, если добавляем
+            if (amount0DesiredWei > 0n) {
+                setProcessStatus(`Checking allowance for ${token0.symbol}...`);
+                const token0Contract = new ethers.Contract(token0.address, ERC20_ABI, signer);
+                const allowance0 = await token0Contract.allowance(userAddress, nftManagerAddress);
+                if (allowance0 < amount0DesiredWei) {
+                    setProcessStatus(`Approving ${token0.symbol}...`);
+                    const approveTx0 = await token0Contract.approve(nftManagerAddress, amount0DesiredWei);
+                    setProcessStatus(`Approval for ${token0.symbol} sent... Waiting...`);
+                    await approveTx0.wait(1);
+                    setProcessStatus(`${token0.symbol} approved!`);
                 } else {
-                    setProcessStatus(`${tokenToApprove.symbol} allowance sufficient.`);
+                    setProcessStatus(`${token0.symbol} allowance sufficient.`);
                 }
             }
-             // Если добавляем оба токена (случай, когда parsedAmount0 > 0 && parsedAmount1 > 0)
-            // и amount1DesiredWei > 0n и tokenToApprove был token0, нужно отдельно одобрить token1.
-            // Это для случая, если вы решите позволить ввод обеих сумм.
-            // Пока что эта логика упрощена и приоритет у одного токена.
-            // Если пользователь ввел обе суммы, и вы хотите одобрить обе:
-            if (parsedAmount0 > 0 && parsedAmount1 > 0 && tokenToApprove.address !== token1.address && amount1DesiredWei > 0n) {
+            // Approve для token1, если добавляем
+            if (amount1DesiredWei > 0n) {
                 setProcessStatus(`Checking allowance for ${token1.symbol}...`);
                 const token1Contract = new ethers.Contract(token1.address, ERC20_ABI, signer);
-                const allowanceToken1 = await token1Contract.allowance(userAddress, nftManagerAddress);
-                if (allowanceToken1 < amount1DesiredWei) {
+                const allowance1 = await token1Contract.allowance(userAddress, nftManagerAddress);
+                if (allowance1 < amount1DesiredWei) {
                     setProcessStatus(`Approving ${token1.symbol}...`);
                     const approveTx1 = await token1Contract.approve(nftManagerAddress, amount1DesiredWei);
-                    setProcessStatus(`Approval for ${token1.symbol} sent: ${approveTx1.hash.substring(0,10)}... Waiting...`);
+                    setProcessStatus(`Approval for ${token1.symbol} sent... Waiting...`);
                     await approveTx1.wait(1);
                     setProcessStatus(`${token1.symbol} approved!`);
                 } else {
-                     setProcessStatus(`${token1.symbol} allowance sufficient.`);
+                    setProcessStatus(`${token1.symbol} allowance sufficient.`);
                 }
             }
 
-
-            const positionManagerContract = new ethers.Contract(
-                nftManagerAddress,
-                INonfungiblePositionManagerABI_Manage,
-                signer
-            );
-
+            const positionManagerContract = new ethers.Contract(nftManagerAddress, INonfungiblePositionManagerABI_Manage, signer);
             const deadline = Math.floor(Date.now() / 1000) + (transactionDeadlineMinutes * 60 || 20 * 60);
-
-            // Для amount0Min и amount1Min можно использовать 0 для простоты,
-            // или рассчитать их на основе slippage и amount0Desired/amount1Desired.
-            // Если пользователь ввел только одну сумму, то для другой min можно оставить 0.
-            // Контракт сам определит, сколько второго токена нужно.
             const params = {
                 tokenId: parseInt(tokenId),
                 amount0Desired: amount0DesiredWei.toString(),
@@ -479,32 +278,65 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
                 amount1Min: 0, // Упрощение!
                 deadline: deadline
             };
+            setProcessStatus('Simulating increaseLiquidity transaction...');
+             
 
-            setProcessStatus(`Sending increaseLiquidity transaction... Please confirm.`);
+            // Выполняем staticCall для симуляции.
+            // Он вернет то, что вернула бы функция (liquidity, amount0, amount1), или выбросит ошибку с причиной revert.
+            const [simulatedLiquidity, simulatedAmount0, simulatedAmount1] = await positionManagerContract.increaseLiquidity.staticCall(
+                params, 
+                { from: userAddr } // Указываем 'from', если это требуется для staticCall (обычно нет, но не помешает)
+                                // Для payable функций, если бы это была не симуляция, здесь могло бы быть 'value'
+            );
+            
+             
+            setProcessStatus('Simulation successful. Sending transaction...');
+            setProcessStatus(`Sending increaseLiquidity transaction...`);
+             
             const increaseTx = await positionManagerContract.increaseLiquidity(params);
-            setProcessStatus(`Increase liquidity transaction sent: ${increaseTx.hash.substring(0,10)}... Waiting...`);
-
+            setProcessStatus(`Increase liquidity tx sent: ${increaseTx.hash.substring(0,10)}... Waiting...`);
             const receipt = await increaseTx.wait(1);
-
             if (receipt.status === 1) {
                 setProcessStatus(`Liquidity successfully added! Tx: ${increaseTx.hash.substring(0,10)}...`);
-                setAmountToAddToken0(''); // Сбрасываем поля ввода
-                setAmountToAddToken1('');
-                await fetchDetailsIfNeeded(); // Обновляем данные о позиции
+                setAmountToAddToken0(''); setAmountToAddToken1('');
+                await fetchDetailsIfNeeded();
             } else {
                 throw new Error("Increase liquidity transaction failed (reverted).");
             }
+        
+        } catch (error) { // Ловим и ошибку симуляции, и ошибку транзакции, и ошибку approve
+    console.error("Ошибка во время добавления ликвидности (approve, симуляция или отправка):", error);
+    let errMsg = error.reason || error.message || "Unknown error occurred.";
 
-        } catch (error) {
-            console.error("Error adding liquidity:", error);
-            let errMsg = error.reason || error.message || "Unknown error adding liquidity.";
-            if (error.data && typeof error.data.message === 'string') errMsg = error.data.message;
-            else if (error.error && typeof error.error.message === 'string') errMsg = error.error.message;
-            setProcessStatus(`Failed to add liquidity: ${errMsg}`);
-        } finally {
-            setIsProcessing(false);
+    // Попытка извлечь более детальную информацию об ошибке, если это ошибка контракта
+    if (error.data && typeof error.data === 'string' && error.data.startsWith('0x')) {
+        // Это может быть закодированная строка ошибки Solidity
+        // Для ethers v6, если это ошибка от контракта, error.revert может содержать детали
+        if (error.revert) {
+             errMsg = `${error.revert.name}(${error.revert.args.join(', ')})`;
+        } else {
+            // Попытка декодировать вручную (менее надежно)
+            const hex = error.data;
+            if (hex.length > 138) { // 0x + Error(string) selector + offset + length + string
+                try {
+                    errMsg = ethers.toUtf8String("0x" + hex.substring(138));
+                } catch (decodeError) { /* оставляем предыдущее сообщение */ }
+            }
         }
+    } else if (error.data && error.data.message) { // Ошибки от провайдера/MetaMask
+         errMsg = error.data.message;
+    } else if (error.error && error.error.message) { // Другие форматы объекта ошибки
+        errMsg = error.error.message;
+    } else if (error.code === 3 && error.message && error.message.toLowerCase().includes('execution reverted')) {
+        errMsg = "Transaction would be reverted. Check parameters or pool conditions.";
+    }
+    
+    setProcessStatus(`Failed to add liquidity: ${errMsg}`);
+} finally {
+    setIsProcessing(false); // Важно сбросить флаг в любом случае
+}
     };
+
 
      const handleRemoveLiquidity = async () => {
         if (!isWalletConnected || !signer || !userAddress || !positionInfo || isProcessing) {
@@ -638,37 +470,58 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
             <div className="manage-tab-content">
                 {activeTab === 'add' && (
                     <div className="add-liquidity-form">
-                        <h3>Add Liquidity to Position</h3>
-                         
-                        <p>Current Range: Tick {positionInfo.tickLower} - {positionInfo.tickUpper}</p>
-                        <input 
-                            type="text" 
-                            placeholder={`Amount of ${token0?.symbol || 'Token0'}`} // Добавил ? для безопасности
-                            value={amountToAddToken0}
-                            onChange={(e) => {
-                                setAmountToAddToken0(e.target.value);
-                                // Если введено это поле, можно сбросить другое, чтобы пользователь вводил только одну сумму
-                                // if (e.target.value) setAmountToAddToken1(''); 
-                            }}
-                            disabled={isProcessing}
-                            className="amount-input-field" // Используем существующий класс или создаем новый
-                        />
-                        <input 
-                            type="text" 
-                            placeholder={`Amount of ${token1?.symbol || 'Token1'}`} // Добавил ? для безопасности
-                            value={amountToAddToken1}
-                            onChange={(e) => {
-                                setAmountToAddToken1(e.target.value);
-                                // if (e.target.value) setAmountToAddToken0('');
-                            }}
-                            disabled={isProcessing}
-                            className="amount-input-field" // Используем существующий класс или создаем новый
-                        />
-                        <button 
-                            onClick={handleAddLiquidity} 
-                            disabled={isProcessing || !isWalletConnected || (!parseFloat(amountToAddToken0) && !parseFloat(amountToAddToken1))} 
-                            className="action-btn-manage"
-                        >
+                        <h3>Add Liquidity</h3>
+                        <p>Range: Ticks {positionInfo.tickLower} - {positionInfo.tickUpper}
+                            {isInRange === true && <span style={{color: 'green', marginLeft: '10px'}}>(In Range)</span>}
+                            {isInRange === false && <span style={{color: 'orange', marginLeft: '10px'}}>(Out of Range)</span>}
+                        </p>
+
+                        {isInRange === true && (
+                            <>
+                                <div className="add-liquidity-input-group">
+                                    <label htmlFor="add-amount0">{token0.symbol}:</label>
+                                    <input type="text" id="add-amount0" placeholder={`Amount of ${token0.symbol}`}
+                                        value={amountToAddToken0}
+                                        onChange={(e) => {
+                                            setAmountToAddToken0(e.target.value);
+                                             
+                                        }}
+                                        disabled={isProcessing} className="amount-input-field" />
+                                </div>
+                                <div className="add-liquidity-input-group"> {/* Для второго токена */}
+                                    <label htmlFor="add-amount1">{token1.symbol}:</label>
+                                    <input type="text" id="add-amount1" placeholder={`Amount of ${token1.symbol}`}
+                                        value={amountToAddToken1}
+                                        onChange={(e) => setAmountToAddToken1(e.target.value)}
+                                        disabled={isProcessing} className="amount-input-field" />
+                                </div>
+                                <p className="info-text-small">When in range, you typically add both tokens. Enter one amount, and the other can be estimated, or enter both.</p>
+                            </>
+                        )}
+
+                        {isInRange === false && tokenObjectToAddWhenOutOfRange && (
+                            <div className="add-liquidity-input-group">
+                                <label htmlFor="add-amount-single">Add {tokenObjectToAddWhenOutOfRange.symbol}:</label>
+                                <input
+                                    type="text" id="add-amount-single"
+                                    placeholder={`Amount of ${tokenObjectToAddWhenOutOfRange.symbol}`}
+                                    value={tokenObjectToAddWhenOutOfRange.address === token0.address ? amountToAddToken0 : amountToAddToken1}
+                                    onChange={(e) => {
+                                        if (tokenObjectToAddWhenOutOfRange.address === token0.address) {
+                                            setAmountToAddToken0(e.target.value); setAmountToAddToken1('');
+                                        } else {
+                                            setAmountToAddToken1(e.target.value); setAmountToAddToken0('');
+                                        }
+                                    }}
+                                    disabled={isProcessing} className="amount-input-field"
+                                />
+                                <p className="info-text-small">Your position is out of range. Add only {tokenObjectToAddWhenOutOfRange.symbol} to increase liquidity.</p>
+                            </div>
+                        )}
+                         {isInRange === null && <p>Determining position range status...</p>}
+
+
+                        <button onClick={handleAddLiquidity} disabled={isProcessing || !isWalletConnected || isInRange === null || (!parseFloat(amountToAddToken0) && !parseFloat(amountToAddToken1))} className="action-btn-manage">
                             {isProcessing ? 'Processing...' : `Add Liquidity`}
                         </button>
                     </div>

@@ -4,7 +4,7 @@ const { INonfungiblePositionManagerABI } = require('./uniswapPositionUtils');
 async function getUncollectedFees(tokenId, walletSignerOrProvider) {
     // ... (код вашей функции getUncollectedFees) ...
     // Убедитесь, что она использует импортированные TokenA, TokenB
-    console.log(`\n--- Расчет несобранных комиссий для позиции NFT с Token ID: ${tokenId} ---`);
+     
     const nftPositionManagerContract = new ethers.Contract(
         UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
         INonfungiblePositionManagerABI,
@@ -14,7 +14,7 @@ async function getUncollectedFees(tokenId, walletSignerOrProvider) {
     const collectParams = { tokenId: tokenId, recipient: wallet.address, amount0Max: MAX_UINT128, amount1Max: MAX_UINT128 };
 
     try {
-        console.log("  Симуляция вызова 'collect' для получения комиссий...");
+         
         const result = await nftPositionManagerContract.collect.staticCall(collectParams);
         const feesAmount0 = result.amount0; 
         const feesAmount1 = result.amount1;
@@ -23,9 +23,8 @@ async function getUncollectedFees(tokenId, walletSignerOrProvider) {
         if (TokenA.address.toLowerCase() === positionInfoForFees.token0.toLowerCase()) { feeToken0 = TokenA; feeToken1 = TokenB; } 
         else if (TokenB.address.toLowerCase() === positionInfoForFees.token0.toLowerCase()) { feeToken0 = TokenB; feeToken1 = TokenA; } 
         else { console.error("  Не удалось сопоставить токены для отображения комиссий."); return { feesAmount0, feesAmount1 }; }
-        console.log(`  Накопленные несобранные комиссии:`);
-        console.log(`    ${feeToken0.symbol}: ${ethers.formatUnits(feesAmount0, feeToken0.decimals)}`);
-        console.log(`    ${feeToken1.symbol}: ${ethers.formatUnits(feesAmount1, feeToken1.decimals)}`);
+         
+         
         return { feesAmount0, feesAmount1, feeToken0, feeToken1 };
     } catch (error) {
         console.error(`  Ошибка при расчете комиссий для позиции ${tokenId}:`, error.reason || error.message || error);
@@ -36,11 +35,11 @@ async function getUncollectedFees(tokenId, walletSignerOrProvider) {
 
 async function collectFees(tokenId, walletSigner) {
     // ... (код вашей функции collectFees) ...
-    console.log(`\n--- Сбор накопленных комиссий для позиции NFT с Token ID: ${tokenId} ---`);
+     
     const nftPositionManagerContract = new ethers.Contract(UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, INonfungiblePositionManagerABI, walletSigner);
     const MAX_UINT128 = (2n ** 128n) - 1n;
     const collectParams = { tokenId: tokenId, recipient: await walletSigner.getAddress(), amount0Max: MAX_UINT128, amount1Max: MAX_UINT128 };
-    console.log("  Параметры для сбора комиссий (collect):", { tokenId: collectParams.tokenId.toString(), recipient: collectParams.recipient, amount0Max: collectParams.amount0Max.toString(), amount1Max: collectParams.amount1Max.toString() });
+     
     try {
         const staticCallResult = await nftPositionManagerContract.collect.staticCall(collectParams, { from: await walletSigner.getAddress() });
         const feesToCollect0 = staticCallResult.amount0;
@@ -50,24 +49,21 @@ async function collectFees(tokenId, walletSigner) {
         if (TokenA.address.toLowerCase() === positionInfoForDisplay.token0.toLowerCase()) { displayToken0 = TokenA; displayToken1 = TokenB; } 
         else if (TokenB.address.toLowerCase() === positionInfoForDisplay.token0.toLowerCase()) { displayToken0 = TokenB; displayToken1 = TokenA; } 
         else { console.error("  Не удалось сопоставить токены для отображения комиссий."); return false; }
-        console.log(`  Доступно для сбора:`);
-        console.log(`    ${displayToken0.symbol}: ${ethers.formatUnits(feesToCollect0, displayToken0.decimals)}`);
-        console.log(`    ${displayToken1.symbol}: ${ethers.formatUnits(feesToCollect1, displayToken1.decimals)}`);
+         
         if (feesToCollect0 === 0n && feesToCollect1 === 0n) { console.log("  Нет комиссий для сбора."); return false; }
-        console.log("  Отправка транзакции collect для сбора комиссий...");
+       
         const tx = await nftPositionManagerContract.collect(collectParams);
-        console.log(`    Транзакция collect отправлена: ${tx.hash}`);
+       
         const receipt = await tx.wait(1);
-        console.log("    Транзакция collect подтверждена. Статус:", receipt.status);
+         
         if (receipt.status === 1) {
-            console.log("  Комиссии успешно собраны!");
+             
             const { ERC20_ABI: FeeERC20_ABI } = require('./erc20Utils');
             const token0Contract = new ethers.Contract(displayToken0.address, FeeERC20_ABI, walletSigner);
             const token1Contract = new ethers.Contract(displayToken1.address, FeeERC20_ABI, walletSigner);
             const balance0After = await token0Contract.balanceOf(walletSigner.address);
             const balance1After = await token1Contract.balanceOf(walletSigner.address);
-            console.log(`  Новый баланс ${displayToken0.symbol}: ${ethers.formatUnits(balance0After, displayToken0.decimals)}`);
-            console.log(`  Новый баланс ${displayToken1.symbol}: ${ethers.formatUnits(balance1After, displayToken1.decimals)}`);
+           
             return true;
         } else { console.error("  Транзакция collect была отменена (reverted)."); return false; }
     } catch (error) {

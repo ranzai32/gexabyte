@@ -5,7 +5,7 @@ const IUniswapV3FactoryABI = require('@uniswap/v3-core/artifacts/contracts/inter
 
 async function getPoolData(tokenA_input, tokenB_input, feeTier) {
     const factoryContract = new ethers.Contract(UNISWAP_V3_FACTORY_ADDRESS, IUniswapV3FactoryABI, provider);
-    console.log(`\nЗапрашиваем адрес пула для ${tokenA_input.symbol}/${tokenB_input.symbol} с комиссией ${feeTier / 10000}%...`);
+    
     
     const poolAddress = await factoryContract.getPool(tokenA_input.address, tokenB_input.address, feeTier);
 
@@ -13,7 +13,7 @@ async function getPoolData(tokenA_input, tokenB_input, feeTier) {
         console.error("Пул для данной пары токенов и уровня комиссии не найден.");
         return null;
     }
-    console.log(`Адрес пула: ${poolAddress}`);
+    
     const poolContract = new ethers.Contract(poolAddress, IUniswapV3PoolABI, provider);
 
     try {
@@ -25,10 +25,7 @@ async function getPoolData(tokenA_input, tokenB_input, feeTier) {
             poolContract.fee()
         ]);
 
-        console.log("Данные из контракта пула:");
-        console.log("  slot0 (sqrtPriceX96, tick):", slot0[0].toString(), slot0[1].toString());
-        console.log("  liquidity:", liquidity.toString());
-        console.log("  fee from pool:", contractFee.toString());
+        
 
         let poolSdkToken0, poolSdkToken1;
         if (tokenA_input.address.toLowerCase() === contractToken0Address.toLowerCase()) {
@@ -55,10 +52,7 @@ async function getPoolData(tokenA_input, tokenB_input, feeTier) {
             liquidity.toString(),
             Number(slot0[1])    
         );
-        console.log("\nОбъект Pool (SDK) создан:");
-        console.log(`  Цена ${pool.token0.symbol} за ${pool.token1.symbol}: ${pool.token0Price.toSignificant(6)}`);
-        console.log(`  Цена ${pool.token1.symbol} за ${pool.token0.symbol}: ${pool.token1Price.toSignificant(6)}`);
-        console.log(`  Текущий Tick пула: ${pool.tickCurrent}`);
+       
         return pool;
 
     } catch (error) {

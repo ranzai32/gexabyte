@@ -90,9 +90,7 @@ function PositionCard({ positionInfo, fees, tokenId, signer, userAddress, onFees
     const navigate = useNavigate();
     const [isCollecting, setIsCollecting] = useState(false);
     const [collectStatus, setCollectStatus] = useState('');
-    console.log('PositionCard isWalletConnected:', isWalletConnected);
-    console.log('PositionCard fees:', fees); 
-    console.log('PositionCard isCollecting:', isCollecting);
+     
 
     if (!positionInfo) {
         return <div className="position-card loading">Loading position data...</div>;
@@ -102,13 +100,18 @@ function PositionCard({ positionInfo, fees, tokenId, signer, userAddress, onFees
     const token1 = getTokenByAddressCard(positionInfo.token1);
     
      
-    const isInRange = true;  
+    let isInRange = null;
+    
+    if (typeof positionInfo.currentTick === 'number' && 
+        typeof positionInfo.tickLower === 'number' && 
+        typeof positionInfo.tickUpper === 'number') {
+        isInRange = positionInfo.currentTick >= positionInfo.tickLower && positionInfo.currentTick <= positionInfo.tickUpper;
+    }
 
     const handleManage = () => {
-        // Предполагаем, что есть маршрут /manage-liquidity/:tokenId
-        // или передаем данные на существующую страницу, например /trade
+         
         navigate(`/manage-liquidity/${tokenId}`, { state: { positionInfo, fees, token0, token1 } });
-        console.log(`Переход к управлению позицией ${tokenId}`);
+         
     };
     
     const handleCollectFees = async () => {
@@ -168,7 +171,7 @@ function PositionCard({ positionInfo, fees, tokenId, signer, userAddress, onFees
     };
 
     const canCollect = fees && (BigInt(fees.feesAmount0 || '0') > 0n || BigInt(fees.feesAmount1 || '0') > 0n);
-    console.log('PositionCard canCollect:', canCollect);
+     
     return (
         <div className={`position-card ${!isInRange ? 'out-of-range' : 'in-range'}`}>
             <div className="position-card-header">
@@ -179,9 +182,11 @@ function PositionCard({ positionInfo, fees, tokenId, signer, userAddress, onFees
                 </div>
                 <div>
                     <span className="fee-tier-chip">Fee: {positionInfo.fee / 10000}%</span>
-                    <span className={`status-chip ${isInRange ? 'in-range' : 'out-of-range-chip'}`}>
-                        {isInRange ? 'In Range' : 'Out of Range'}
-                    </span>
+                    {isInRange !== null && (  
+                        <span className={`status-chip ${isInRange ? 'in-range' : 'out-of-range-chip'}`}>
+                            {isInRange ? 'In Range' : 'Out of Range'}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -194,6 +199,12 @@ function PositionCard({ positionInfo, fees, tokenId, signer, userAddress, onFees
                     <span className="info-label">Max Price (Tick {positionInfo.tickUpper})</span>
                     <span className="info-value"> {/* TODO: Calculate and display price from tick */} N/A </span>
                 </div>
+                {typeof positionInfo.currentTick === 'number' && (  
+                    <div>
+                        <span className="info-label">Current Pool Tick</span>
+                        <span className="info-value">{positionInfo.currentTick.toLocaleString()}</span>
+                    </div>
+                )}
                 <div>
                     <span className="info-label">Liquidity</span>
                     <span className="info-value">{positionInfo.liquidity !== '0' ? Number(ethers.formatUnits(positionInfo.liquidity, 0)).toLocaleString() : '0'}</span>
