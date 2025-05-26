@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // useState, useEffect, useCallback импортируются из 'react'
+import React, { useState } from 'react'; // useState, useEffect, useCallback импортируются из 'react'
 import { useNavigate } from 'react-router-dom'; // useNavigate импортируется из 'react-router-dom'
 import './AllPools.css';
 
@@ -14,7 +14,7 @@ const PoolRowContent = ({ token0, token1, feeTier, poolData, isLoadingPoolData, 
                 initialToken0: token0,
                 initialToken1: token1,
                 initialFeeTier: feeTier,
-                poolCurrentTick: poolData.tickCurrent,
+                initialPoolData: poolData
             }
         });
     };

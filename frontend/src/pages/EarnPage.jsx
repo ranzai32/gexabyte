@@ -217,12 +217,7 @@ function EarnPage({ isWalletConnected, provider, signer, userAddress }) {
     return (
         <div className="earn-page-container">
             <div className="earn-page-header">
-                <h1>Earn Liquidity</h1>
-                {isWalletConnected && (
-                    <button onClick={handleAddNewPosition} className="add-liquidity-btn">
-                        + Add Liquidity
-                    </button>
-                )}
+                <h1>Pools</h1>
             </div>
 
             <div className="earn-page-tabs">

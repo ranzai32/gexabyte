@@ -53,6 +53,7 @@
 .navbar-brand {
     font-size: 1.5rem;
     font-weight: bold;
+    margin-left: 34px;
     margin-right: 2rem;  
     color: white;  
     text-decoration: none;  

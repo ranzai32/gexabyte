@@ -320,6 +320,7 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
             if (hex.length > 138) { // 0x + Error(string) selector + offset + length + string
                 try {
                     errMsg = ethers.toUtf8String("0x" + hex.substring(138));
+                // eslint-disable-next-line no-unused-vars
                 } catch (decodeError) { /* оставляем предыдущее сообщение */ }
             }
         }
@@ -336,11 +337,9 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
     setIsProcessing(false); // Важно сбросить флаг в любом случае
 }
     };
-
-
-     const handleRemoveLiquidity = async () => {
+    const handleRemoveLiquidity = async () => {
         if (!isWalletConnected || !signer || !userAddress || !positionInfo || isProcessing) {
-            setProcessStatus("Wallet not connected or data unavailable.");
+            setProcessStatus("Wallet not connected or position data unavailable.");
             return;
         }
         if (removeLiquidityPercentage <= 0 || removeLiquidityPercentage > 100) {
@@ -354,76 +353,102 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
         try {
             const nftManagerAddress = import.meta.env.VITE_UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS;
             if (!nftManagerAddress) {
-                throw new Error("NFT Position Manager address not configured.");
+                throw new Error("NFT Position Manager address is not configured.");
             }
 
             const positionManagerContract = new ethers.Contract(
                 nftManagerAddress,
-                INonfungiblePositionManagerABI_Manage, // Убедитесь, что этот ABI содержит decreaseLiquidity и collect
+                INonfungiblePositionManagerABI_Manage,
                 signer
             );
 
-            const currentLiquidity = BigInt(positionInfo.liquidity);
-            const liquidityToRemove = (currentLiquidity * BigInt(removeLiquidityPercentage)) / 100n;
+            const currentLiquidityBigInt = BigInt(positionInfo.liquidity);
+            const liquidityToRemove = (currentLiquidityBigInt * BigInt(removeLiquidityPercentage)) / 100n;
+            let decreaseTxSuccessful = false;
+            let actualLiquidityAfterDecrease = currentLiquidityBigInt;
 
-            if (liquidityToRemove <= 0n) {
-                setProcessStatus("Calculated liquidity to remove is zero. No action taken.");
-                setIsProcessing(false);
-                return;
-            }
-            
+
             const deadline = Math.floor(Date.now() / 1000) + (transactionDeadlineMinutes * 60 || 20 * 60);
+            let decreaseTxHash = null;
 
-            // 1. Decrease Liquidity
-            const decreaseParams = {
-                tokenId: parseInt(tokenId),
-                liquidity: liquidityToRemove.toString(),
-                amount0Min: 0, 
-                amount1Min: 0, 
-                deadline: deadline
-            };
+            if (liquidityToRemove > 0n) {
+                const decreaseParams = {
+                    tokenId: parseInt(tokenId),
+                    liquidity: liquidityToRemove.toString(),
+                    amount0Min: 0, 
+                    amount1Min: 0, 
+                    deadline: deadline
+                };
 
-            setProcessStatus(`Sending decreaseLiquidity transaction for ${removeLiquidityPercentage}%... Please confirm.`);
-            const decreaseTx = await positionManagerContract.decreaseLiquidity(decreaseParams);
-            setProcessStatus(`Decrease transaction sent: ${decreaseTx.hash.substring(0,10)}... Waiting for confirmation...`);
-            const decreaseReceipt = await decreaseTx.wait(1);
+                setProcessStatus(`Sending decreaseLiquidity transaction for ${removeLiquidityPercentage}%...`);
+                const decreaseTx = await positionManagerContract.decreaseLiquidity(decreaseParams);
+                decreaseTxHash = decreaseTx.hash;
+                setProcessStatus(`Decrease liquidity transaction sent: ${decreaseTx.hash.substring(0,10)}... Waiting for confirmation...`);
+                const decreaseReceipt = await decreaseTx.wait(1);
 
-            if (decreaseReceipt.status !== 1) {
-                throw new Error("Decrease liquidity transaction failed (reverted).");
+                if (decreaseReceipt.status !== 1) {
+                    throw new Error("Decrease liquidity transaction failed (reverted).");
+                }
+                decreaseTxSuccessful = true;
+                actualLiquidityAfterDecrease = currentLiquidityBigInt - liquidityToRemove;
+                setProcessStatus(`Liquidity successfully decreased! ${decreaseTxHash ? `Tx: ${decreaseTxHash.substring(0,10)}... ` : ''}Now collecting funds...`);
+            } else if (removeLiquidityPercentage > 0) {
+                 setProcessStatus("Current position liquidity is zero. Proceeding to collect fees...");
+                 decreaseTxSuccessful = true; 
+                 actualLiquidityAfterDecrease = 0n;
+            } else {
+                 setProcessStatus("Percentage to remove is zero. No liquidity decrease needed.");
             }
-            setProcessStatus(`Liquidity decreased successfully! Now collecting funds...`); // Изменено сообщение
 
-            // 2. Collect (чтобы забрать высвобожденные токены и все накопленные комиссии)
             const MAX_UINT128 = (2n ** 128n) - 1n;
             const collectParams = {
                 tokenId: parseInt(tokenId),
-                recipient: userAddress, // Комиссии и токены будут отправлены на адрес пользователя
-                amount0Max: MAX_UINT128, // Собираем всё доступное
-                amount1Max: MAX_UINT128  // Собираем всё доступное
+                recipient: userAddress, 
+                amount0Max: MAX_UINT128, 
+                amount1Max: MAX_UINT128  
             };
 
-            setProcessStatus(`Sending collect transaction... Please confirm in your wallet.`);
+            setProcessStatus(`Sending collect transaction to gather funds and fees...`);
             const collectTx = await positionManagerContract.collect(collectParams);
             setProcessStatus(`Collect transaction sent: ${collectTx.hash.substring(0,10)}... Waiting for confirmation...`);
             const collectReceipt = await collectTx.wait(1);
 
             if (collectReceipt.status !== 1) {
-                 
-                throw new Error("Collect transaction after decrease failed (reverted). Funds are available for later collection.");
+                setProcessStatus(`Warning: Failed to collect funds/fees (Tx: ${collectTx.hash.substring(0,10)}...). If you proceed with burning the NFT, these funds might be lost.`);
+            } else {
+                 setProcessStatus(`Funds and fees successfully collected! Tx: ${collectTx.hash.substring(0,10)}...`);
             }
 
-            setProcessStatus(`Successfully removed ${removeLiquidityPercentage}% liquidity and collected funds! Tx: ${decreaseTx.hash.substring(0,10)}... (and ${collectTx.hash.substring(0,10)}...)`);
-            // TODO: Обновить данные о позиции (вызвать fetchDetailsIfNeeded или колбэк),
-            // positionInfo.liquidity изменится, а tokensOwed0/1 (и fees) должны стать близки к нулю.
-            // Например: fetchDetailsIfNeeded(); 
-            await fetchDetailsIfNeeded();
+            if (removeLiquidityPercentage === 100 && actualLiquidityAfterDecrease === 0n) {
+                setProcessStatus(`Preparing to burn NFT #${tokenId}...`);
+                
+                const burnTx = await positionManagerContract.burn(tokenId); 
+                setProcessStatus(`Burn NFT transaction sent: ${burnTx.hash.substring(0,10)}... Waiting for confirmation...`);
+                const burnReceipt = await burnTx.wait(1);
 
+                if (burnReceipt.status === 1) {
+                    setProcessStatus(`NFT #${tokenId} successfully burned! Position fully removed. Tx: ${burnTx.hash.substring(0,10)}...`);
+                    navigate('/earn'); 
+                } else {
+                    throw new Error("Burn NFT transaction failed (reverted). The position (NFT) still exists but should be empty of liquidity.");
+                }
+            } else if (removeLiquidityPercentage === 100 && actualLiquidityAfterDecrease > 0n) {
+                 setProcessStatus(`Liquidity was decreased, but not to zero (${actualLiquidityAfterDecrease.toString()}). NFT burn will not be performed.`);
+                 await fetchDetailsIfNeeded(); 
+            }
+             else {
+                setProcessStatus(`Successfully removed ${removeLiquidityPercentage}% liquidity and collected funds/fees!`);
+                await fetchDetailsIfNeeded(); 
+            }
 
         } catch (error) {
-            console.error("Error removing liquidity and collecting:", error);
-            let errMsg = error.reason || error.message || "Unknown error during removal/collection.";
-            if (error.data && typeof error.data.message === 'string') errMsg = error.data.message;
-            else if (error.error && typeof error.error.message === 'string') errMsg = error.error.message;
+            console.error("Error during remove liquidity/collect/burn:", error);
+            let errMsg = error.reason || error.message || "Unknown error during operation.";
+            if (error.data && typeof error.data.message === 'string') {
+                 errMsg = error.data.message;
+            } else if (error.error && typeof error.error.message === 'string') {
+                 errMsg = error.error.message;
+            }
             setProcessStatus(`Operation failed: ${errMsg}`);
         } finally {
             setIsProcessing(false);

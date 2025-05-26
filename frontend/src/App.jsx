@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import TradePage from './pages/TradePage';
 import EarnPage from './pages/EarnPage';
 import ManageLiquidityPage from './pages/ManageLiquidityPage';
+import AddLiquidityPage from './pages/AddLiquidityPage';
 
 function App() {
   const [userAddress, setUserAddress] = useState(null);
@@ -130,6 +131,17 @@ function App() {
                     /> 
                 } 
               />
+              <Route 
+                    path="/add-liquidity" // Новый маршрут
+                    element={ 
+                        <AddLiquidityPage 
+                            isWalletConnected={!!userAddress} 
+                            provider={provider} 
+                            signer={signer}
+                            userAddress={userAddress}
+                        /> 
+                    } 
+                />
             </Routes>
           </main>
         </div>
