@@ -1,0 +1,122 @@
+/* frontend/src/components/AllPools.css */
+.all-pools-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* Отступ между строками пулов */
+}
+
+.pools-list-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr 1.5fr; /* Адаптируйте колонки под ваш контент */
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    font-weight: bold;
+    color: #a5a2b3; /* Цвет текста заголовков */
+    border-bottom: 1px solid #404058;
+    font-size: 0.9rem;
+}
+
+.pools-list-header span:last-child {
+    text-align: right; /* Последняя колонка (Action) вправо */
+}
+
+.pool-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr 1.5fr; /* Те же колонки, что и в хедере */
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    background-color: #353547; /* Фон строки */
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.pool-row:hover {
+    background-color: #404058; /* Фон при наведении */
+}
+
+.pool-pair {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.token-logo-pool {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #27262c; /* Фон для лого, если SVG прозрачный */
+}
+
+.token-logo-pool.second {
+    margin-left: -8px; /* Наложение логотипов */
+}
+
+.pool-pair span {
+    margin-left: 0.75rem;
+}
+
+.pool-fee-tier,
+.pool-rate,
+.pool-tvl {
+    font-size: 0.95rem;
+    color: #c3c0d0;
+}
+
+.pool-rate {
+    /* Можно добавить стили для лучшего отображения курса */
+}
+
+.pool-actions {
+    text-align: right; /* Кнопка действия справа */
+}
+
+.add-liquidity-pool-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    background-color: #2172e5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.add-liquidity-pool-btn:hover:not(:disabled) {
+    background-color: #1b5db0;
+}
+.add-liquidity-pool-btn:disabled {
+    background-color: #27262c;
+    color: #6c6c82;
+    cursor: not-allowed;
+}
+
+.pools-filter-bar {
+    margin-bottom: 1.5rem;
+    display: flex;
+}
+
+.pools-filter-input {
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    background-color: #27262c; /* Такой же, как у других инпутов */
+    border: 1px solid #404058;
+    border-radius: 8px;
+    color: white;
+    font-size: 0.95rem;
+}
+
+.pools-filter-input::placeholder {
+    color: #a5a2b3;
+}
+
+.pools-filter-input:focus {
+    outline: none;
+    border-color: #7a6eaa; /* Цвет при фокусе */
+}
+
+.info-message { /* Общий стиль для сообщений "Loading...", "No pools..." */
+    text-align: center;
+    padding: 2rem;
+    color: #a5a2b3;
+}
