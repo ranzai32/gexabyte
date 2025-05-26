@@ -5,6 +5,7 @@ const cors = require('cors');
 const NodeCache = require( "node-cache" );
 const positionsCache = new NodeCache( { stdTTL: 120, checkperiod: 150 } );
 const { getTokenDetailsByAddressOnBackend } = require('./src/constants/predefinedTokens');
+const { Pool } = require('pg');
 
 // Импортируем необходимые части из вашей существующей конфигурации и утилит
 // Пути должны быть относительны server.js
@@ -16,12 +17,43 @@ const { Token: UniswapToken } = require('@uniswap/sdk-core'); // Переиме�
 const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;
 const app = express();
 const PORT = 3001;
-const IQuoterV2_ABI = require('./src/abi/IQuoterV2_ABI.json');  
+const IQuoterV2_ABI = require('./src/abi/IQuoterV2_ABI.json'); 
 
-app.use(cors()); // Включаем CORS для всех маршрутов
-app.use(express.json()); // Middleware для парсинга JSON в теле запроса
+const {
+    initializeAutoManagement,
+    startMonitoringPosition, // Импортируем, если они вызываются из маршрутов
+    stopMonitoringPosition  // Импортируем, если они вызываются из маршрутов
+} = require('./src/services/autoManageService.js');
 
-// Простой маршрут для проверки, что сервер работает
+const pgPool = new Pool({
+    user: process.env.PG_USER,
+    host: process.env.PG_HOST,
+    database: process.env.PG_DATABASE,
+    password: process.env.PG_PASSWORD,
+    port: process.env.PG_PORT,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+pgPool.connect((err, client, release) => {
+    if (err) {
+        return console.error('Error acquiring client for DB init', err.stack);
+    }
+    client.query('SELECT NOW()', (err, result) => {
+        release(); 
+        if (err) {
+            return console.error('Error executing query for DB init', err.stack);
+        }
+        console.log('Successfully connected to PostgreSQL. Current time:', result.rows[0].now);
+        initializeAutoManagement(pgPool); 
+    });
+});
+
+app.use(cors());  
+app.use(express.json());  
+
+const autoManageState = {};
 app.get('/', (req, res) => {
     res.send('Бэкенд сервер для Uniswap Interface работает!');
 });
@@ -390,6 +422,152 @@ app.get('/api/user-positions/:userAddress', async (req, res) => {
     }
 });
 
+app.get('/api/auto-manage/status/:tokenId', async (req, res) => {
+    const { tokenId } = req.params;
+    const parsedTokenId = parseInt(tokenId);
+
+    if (isNaN(parsedTokenId)) {
+        return res.status(400).json({ error: "Invalid tokenId" });
+    }
+
+    try {
+        const result = await pgPool.query(
+            'SELECT is_enabled, strategy_parameters, user_address FROM auto_managed_positions WHERE token_id = $1',
+            [parsedTokenId]
+        );
+
+        if (result.rows.length > 0) {
+            res.json({
+                tokenId: parsedTokenId,
+                isEnabled: result.rows[0].is_enabled,
+                strategyParameters: result.rows[0].strategy_parameters,
+                owner: result.rows[0].user_address  
+            });
+        } else {
+            res.json({ tokenId: parsedTokenId, isEnabled: false });  
+        }
+    } catch (error) {
+        console.error(`[API /auto-manage/status] Error for tokenId ${parsedTokenId}:`, error);
+        res.status(500).json({ error: "Failed to get auto-manage status", details: error.message });
+    }
+});
+
+app.post('/api/auto-manage/toggle', async (req, res) => {
+    const { tokenId, enable, userAddress, strategyParameters } = req.body; // strategyParameters от клиента может быть undefined
+    const parsedTokenId = parseInt(tokenId);
+
+    if (isNaN(parsedTokenId) || typeof enable !== 'boolean' || !ethers.isAddress(userAddress)) {
+        return res.status(400).json({ error: "Invalid request parameters." });
+    }
+
+    try {
+        const positionManagerContract = new ethers.Contract(
+            UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
+            INonfungiblePositionManagerABI,
+            provider
+        );
+        const owner = await positionManagerContract.ownerOf(parsedTokenId);
+        if (owner.toLowerCase() !== userAddress.toLowerCase()) {
+            return res.status(403).json({ error: "User is not the owner of this position." });
+        }
+
+        const positionDetails = await getPositionDetails(parsedTokenId, provider);
+        if (!positionDetails || positionDetails.token0 === ethers.ZeroAddress) {
+             return res.status(404).json({ error: "Position details not found for tokenId." });
+        }
+
+        // --- Начало изменений ---
+        const defaultStrategyParams = { 
+            rangePercentage: 5, 
+            rebalanceSlippage: 0.5, // Пример
+            checkIntervalMinutes: 5 // Пример
+        };
+
+        let finalStrategyParametersToStore = defaultStrategyParams;
+
+        if (strategyParameters && typeof strategyParameters === 'object' && Object.keys(strategyParameters).length > 0) {
+            // Если клиент прислал параметры, используем их, возможно, объединяя с дефолтными
+            finalStrategyParametersToStore = { ...defaultStrategyParams, ...strategyParameters };
+        } else if (enable) {
+            // Если включаем и клиент ничего не прислал, проверяем, есть ли что-то в БД
+            // Если нет, используем дефолтные. Если есть - оставляем существующие (логика ниже их перезапишет если надо)
+            const existingRecord = await pgPool.query(
+                'SELECT strategy_parameters FROM auto_managed_positions WHERE token_id = $1',
+                [parsedTokenId]
+            );
+            if (existingRecord.rows.length > 0 && existingRecord.rows[0].strategy_parameters) {
+                finalStrategyParametersToStore = existingRecord.rows[0].strategy_parameters;
+            }
+            // Если выключаем (enable=false), параметры стратегии не так важны, но лучше их сохранить, если они были
+        } else if (!enable) {
+             const existingRecord = await pgPool.query(
+                'SELECT strategy_parameters FROM auto_managed_positions WHERE token_id = $1',
+                [parsedTokenId]
+            );
+            if (existingRecord.rows.length > 0 && existingRecord.rows[0].strategy_parameters) {
+                finalStrategyParametersToStore = existingRecord.rows[0].strategy_parameters;
+            }
+        }
+        
+        const strategyParamsJsonToStore = JSON.stringify(finalStrategyParametersToStore);
+        // --- Конец изменений ---
+
+        const upsertQuery = `
+            INSERT INTO auto_managed_positions (token_id, user_address, is_enabled, strategy_parameters, token0_address, token1_address, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            ON CONFLICT (token_id)
+            DO UPDATE SET
+                is_enabled = EXCLUDED.is_enabled,
+                user_address = EXCLUDED.user_address,
+                strategy_parameters = EXCLUDED.strategy_parameters,
+                token0_address = COALESCE(auto_managed_positions.token0_address, EXCLUDED.token0_address),
+                token1_address = COALESCE(auto_managed_positions.token1_address, EXCLUDED.token1_address),
+                updated_at = NOW()
+            RETURNING is_enabled, strategy_parameters;
+        `;
+        const result = await pgPool.query(upsertQuery, [
+            parsedTokenId,
+            userAddress,
+            enable,
+            strategyParamsJsonToStore,  
+            positionDetails.token0,
+            positionDetails.token1
+        ]);
+        
+        const updatedDbState = result.rows[0];
+
+        if (enable) {
+            console.log(`[API /auto-manage/toggle] Auto-management ENABLED for tokenId ${parsedTokenId} by ${userAddress}. Parameters:`, updatedDbState.strategy_parameters);
+            startMonitoringPosition(
+                parsedTokenId,
+                updatedDbState.strategy_parameters,  
+                userAddress,
+                positionDetails.token0,
+                positionDetails.token1,
+                pgPool
+            );
+        } else {
+            console.log(`[API /auto-manage/toggle] Auto-management DISABLED for tokenId ${parsedTokenId} by ${userAddress}.`);
+            stopMonitoringPosition(parsedTokenId, pgPool);
+        }
+
+        res.json({
+            success: true,
+            tokenId: parsedTokenId,
+            isEnabled: updatedDbState.is_enabled,
+            strategyParameters: updatedDbState.strategy_parameters  
+        });
+
+    } catch (error) {
+        console.error(`[API /auto-manage/toggle] Error for tokenId ${parsedTokenId}:`, error);
+        let errMsg = "Failed to toggle auto-management.";
+        if (error.message && error.message.includes("owner query for nonexistent token")) {
+            errMsg = "Position (NFT) does not exist or already burned.";
+            return res.status(404).json({ error: errMsg });
+        }
+        res.status(500).json({ error: errMsg, details: error.message });
+    }
+});
 
 
 // TODO: Добавить эндпоинты для операций, требующих подписи пользователя (они будут готовить параметры)

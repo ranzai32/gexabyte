@@ -33,7 +33,7 @@ async function wrapEth() {
     console.log(`Начальный баланс WETH: ${ethers.formatUnits(wethBalanceInitial, 18)} WETH`); // WETH имеет 18 знаков
 
     // --- Сколько ETH обернуть ---
-    const amountToWrapStr = "0.01"; // Например, оборачиваем 0.01 ETH
+    const amountToWrapStr = "0.02"; // Например, оборачиваем 0.01 ETH
     const amountToWrapWei = ethers.parseEther(amountToWrapStr);
 
     if (ethBalance < amountToWrapWei) {

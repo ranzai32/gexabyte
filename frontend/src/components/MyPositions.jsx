@@ -6,7 +6,8 @@ import './MyPositions.css';
 // isWalletConnected, userAddress, signer передаются для PositionCard
 // provider здесь больше не нужен, если вся загрузка в EarnPage
 function MyPositions({ 
-    isWalletConnected, 
+    isWalletConnected,
+    provider, 
     signer, 
     userAddress, 
     positions, // Получаем массив позиций как пропс
@@ -36,13 +37,14 @@ function MyPositions({
                     {positions.map(posData => (
                         <PositionCard
                             key={posData.tokenId}
+                            provider={provider}
                             tokenId={posData.tokenId}
                             positionInfo={posData.positionInfo}
                             fees={posData.fees}
                             signer={signer}
                             userAddress={userAddress}
                             isWalletConnected={isWalletConnected}
-                            onFeesCollected={() => onPositionUpdate(posData.tokenId)} // Вызываем общий колбэк
+                            onPositionUpdate={onPositionUpdate} // Вызываем общий колбэк
                         />
                     ))}
                 </div>

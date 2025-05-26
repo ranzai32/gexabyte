@@ -166,7 +166,8 @@
     margin-top: 1.25rem;  
     display: flex;
     gap: 1rem;  
-    justify-content: flex-end;  
+    justify-content: space-between; /* Изменено для размещения переключателя */
+    align-items: center; /* Выравниваем элементы по центру */
 }
 
 .position-card-actions .action-button {
@@ -218,5 +219,78 @@
     margin-top: 0.5rem;
     text-align: center;
     width: 100%;
+    color: #a5a2b3;  
+}
+
+.auto-manage-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.auto-manage-label {
+    font-size: 0.85rem;
+    color: #a5a2b3;
+}
+
+.auto-manage-toggle {
+    background-color: #404058; /* Красный/неактивный цвет фона */
+    color: white;
+    border: 1px solid #505068;
+    border-radius: 15px; /* Овальная форма */
+    padding: 0.2rem; /* Небольшой внутренний отступ */
+    width: 65px; /* Ширина переключателя */
+    height: 30px; /* Высота переключателя */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Для текста ON/OFF */
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.auto-manage-toggle .toggle-switch-circle {
+    background-color: white;
+    border-radius: 50%;
+    width: 22px; /* Размер кружка */
+    height: 22px;
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.auto-manage-toggle .toggle-status-text {
+    padding: 0 5px;
+    z-index: 1;
+    color: #e0e0e0;
+}
+
+
+.auto-manage-toggle.active {
+    background-color: #27ae60; /* Зеленый/активный цвет фона */
+    border-color: #2ecc71;
+}
+
+.auto-manage-toggle.active .toggle-switch-circle {
+    transform: translateX(33px); /* Смещение кружка вправо */
+}
+
+ 
+
+
+.auto-manage-toggle:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.auto-manage-status-message {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    text-align: right; /* или center, если блок занимает всю ширину */
+    width: 100%; /* Если нужно чтобы сообщение было под кнопками */
     color: #a5a2b3;  
 }
