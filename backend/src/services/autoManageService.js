@@ -220,6 +220,30 @@ async function checkAndRebalance(tokenId, userAddress, token0AddrCanonical, toke
                             }
                         } catch(e) { /* ignore parsing errors */ }
                     }
+
+                    // Обновляем собранные комиссии в базе данных
+                    try {
+                        const currentFeesResult = await pgPoolInstance.query(
+                            'SELECT cumulative_fees_token0_wei, cumulative_fees_token1_wei FROM auto_managed_positions WHERE token_id = $1 FOR UPDATE',
+                            [oldTokenId]
+                        );
+
+                        if (currentFeesResult.rows.length > 0) {
+                            const currentCumulative0 = BigInt(currentFeesResult.rows[0].cumulative_fees_token0_wei || '0');
+                            const currentCumulative1 = BigInt(currentFeesResult.rows[0].cumulative_fees_token1_wei || '0');
+
+                            const newCumulative0 = currentCumulative0 + amount0Collected;
+                            const newCumulative1 = currentCumulative1 + amount1Collected;
+
+                            await pgPoolInstance.query(
+                                'UPDATE auto_managed_positions SET cumulative_fees_token0_wei = $1, cumulative_fees_token1_wei = $2, status_message = $3, updated_at = NOW() WHERE token_id = $4',
+                                [newCumulative0.toString(), newCumulative1.toString(), 'Auto-collected fees updated.', oldTokenId]
+                            );
+                            console.log(`[AutoManage] Updated cumulative fees for tokenId ${oldTokenId}`);
+                        }
+                    } catch (dbError) {
+                        console.error(`[AutoManage] Error updating collected fees in DB for ${oldTokenId}:`, dbError);
+                    }
                 } else {
                     console.log(`[AutoManage] NFT ${oldTokenId} does not exist before collect. Skipping collect.`);
                 }
@@ -486,21 +510,33 @@ async function checkAndRebalance(tokenId, userAddress, token0AddrCanonical, toke
                     const oldPosUpdateQuery = 'UPDATE auto_managed_positions SET is_enabled = FALSE, status_message = $1, updated_at = NOW() WHERE token_id = $2';
                     await client.query(oldPosUpdateQuery, [`Rebalanced to new NFT ${newNftTokenId}`, oldTokenId]);
                     
+                    // Добавляем начальные значения для новой позиции
                     const newPosInsertQuery = `
                         INSERT INTO auto_managed_positions 
-                        (token_id, user_address, token0_address, token1_address, strategy_parameters, is_enabled, status_message, last_checked_at, created_at, updated_at) 
-                        VALUES ($1, $2, $3, $4, $5, TRUE, $6, NOW(), NOW(), NOW())
+                        (token_id, user_address, token0_address, token1_address, 
+                         initial_amount0_wei, initial_amount1_wei,
+                         cumulative_fees_token0_wei, cumulative_fees_token1_wei,
+                         strategy_parameters, is_enabled, status_message, last_checked_at, created_at, updated_at) 
+                        VALUES ($1, $2, $3, $4, $5, $6, '0', '0', $7, TRUE, $8, NOW(), NOW(), NOW())
                         ON CONFLICT (token_id) DO UPDATE SET
-                            user_address = EXCLUDED.user_address, token0_address = EXCLUDED.token0_address,
+                            user_address = EXCLUDED.user_address, 
+                            token0_address = EXCLUDED.token0_address,
                             token1_address = EXCLUDED.token1_address, 
-                            strategy_parameters = EXCLUDED.strategy_parameters, is_enabled = TRUE,
-                            status_message = EXCLUDED.status_message, last_checked_at = NOW(), updated_at = NOW();
+                            initial_amount0_wei = EXCLUDED.initial_amount0_wei,
+                            initial_amount1_wei = EXCLUDED.initial_amount1_wei,
+                            strategy_parameters = EXCLUDED.strategy_parameters, 
+                            is_enabled = TRUE,
+                            status_message = EXCLUDED.status_message, 
+                            last_checked_at = NOW(), 
+                            updated_at = NOW();
                     `;
                     await client.query(newPosInsertQuery, [
                         newNftTokenId, 
                         userAddress, 
                         sdkToken0Canonical.address, 
-                        sdkToken1Canonical.address, 
+                        sdkToken1Canonical.address,
+                        amount0DesiredForMint.toString(),
+                        amount1DesiredForMint.toString(),
                         JSON.stringify(newStrategyParamsForDB), 
                         `Active after rebalance from ${oldTokenId}`
                     ]);
