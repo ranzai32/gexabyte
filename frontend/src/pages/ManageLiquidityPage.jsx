@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
+import { Token } from '@uniswap/sdk-core';
+import { Pool, Position } from '@uniswap/v3-sdk';
 import './ManageLiquidityPage.css';
+import { TickMath } from '@uniswap/v3-sdk';
+import JSBI from 'jsbi';
 
 const PREDEFINED_TOKENS_LIST_MANAGE = {
   WETH: {
@@ -52,6 +56,18 @@ const ERC20_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function allowance(address owner, address spender) external view returns (uint256)",
   "function balanceOf(address account) external view returns (uint256)"
+];
+
+const CHAIN_ID = 11155111;
+
+const UNISWAP_V3_FACTORY_ADDRESS = '0x0227628f3F023bb0B980b67D528571c95c6DaC1c'; // Sepolia testnet factory address
+
+// Price bounds from Uniswap V3 SDK
+ 
+
+const UNISWAP_V3_FACTORY_ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint24","name":"fee","type":"uint24"},{"indexed":true,"internalType":"int24","name":"tickSpacing","type":"int24"}],"name":"FeeAmountEnabled","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"oldOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnerChanged","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"token0","type":"address"},{"indexed":true,"internalType":"address","name":"token1","type":"address"},{"indexed":true,"internalType":"uint24","name":"fee","type":"uint24"},{"indexed":false,"internalType":"int24","name":"tickSpacing","type":"int24"},{"indexed":false,"internalType":"address","name":"pool","type":"address"}],"name":"PoolCreated","type":"event"},{"inputs":[{"internalType":"address","name":"tokenA","type":"address"},{"internalType":"address","name":"tokenB","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"}],"name":"createPool","outputs":[{"internalType":"address","name":"pool","type":"address"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickSpacing","type":"int24"}],"name":"enableFeeAmount","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint24","name":"","type":"uint24"}],"name":"feeAmountTickSpacing","outputs":[{"internalType":"int24","name":"","type":"int24"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"},{"internalType":"uint24","name":"","type":"uint24"}],"name":"getPool","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"parameters","outputs":[{"internalType":"address","name":"factory","type":"address"},{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickSpacing","type":"int24"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_owner","type":"address"}],"name":"setOwner","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+const UNISWAP_V3_POOL_ABI = [
+  "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)"
 ];
 
 const INonfungiblePositionManagerABI_Manage = [{"inputs":[{"internalType":"address","name":"_factory","type":"address"},{"internalType":"address","name":"_WETH9","type":"address"},{"internalType":"address","name":"_tokenDescriptor_","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"address","name":"recipient","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"Collect","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"uint128","name":"liquidity","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"DecreaseLiquidity","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"},{"indexed":false,"internalType":"uint128","name":"liquidity","type":"uint128"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"IncreaseLiquidity","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"WETH9","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approve","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"baseURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"pure","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"burn","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint128","name":"amount0Max","type":"uint128"},{"internalType":"uint128","name":"amount1Max","type":"uint128"}],"internalType":"struct INonfungiblePositionManager.CollectParams","name":"params","type":"tuple"}],"name":"collect","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint160","name":"sqrtPriceX96","type":"uint160"}],"name":"createAndInitializePoolIfNecessary","outputs":[{"internalType":"address","name":"pool","type":"address"}],"stateMutability":"payable","type":"function"},{"inputs":[{"components":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"internalType":"struct INonfungiblePositionManager.DecreaseLiquidityParams","name":"params","type":"tuple"}],"name":"decreaseLiquidity","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"components":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint256","name":"amount0Desired","type":"uint256"},{"internalType":"uint256","name":"amount1Desired","type":"uint256"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"internalType":"struct INonfungiblePositionManager.IncreaseLiquidityParams","name":"params","type":"tuple"}],"name":"increaseLiquidity","outputs":[{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"operator","type":"address"}],"name":"isApprovedForAll","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"components":[{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickLower","type":"int24"},{"internalType":"int24","name":"tickUpper","type":"int24"},{"internalType":"uint256","name":"amount0Desired","type":"uint256"},{"internalType":"uint256","name":"amount1Desired","type":"uint256"},{"internalType":"uint256","name":"amount0Min","type":"uint256"},{"internalType":"uint256","name":"amount1Min","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"internalType":"struct INonfungiblePositionManager.MintParams","name":"params","type":"tuple"}],"name":"mint","outputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"bytes[]","name":"data","type":"bytes[]"}],"name":"multicall","outputs":[{"internalType":"bytes[]","name":"results","type":"bytes[]"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"positions","outputs":[{"internalType":"uint96","name":"nonce","type":"uint96"},{"internalType":"address","name":"operator","type":"address"},{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickLower","type":"int24"},{"internalType":"int24","name":"tickUpper","type":"int24"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"feeGrowthInside0LastX128","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside1LastX128","type":"uint256"},{"internalType":"uint128","name":"tokensOwed0","type":"uint128"},{"internalType":"uint128","name":"tokensOwed1","type":"uint128"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"refundETH","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"safeTransferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermit","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowed","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"expiry","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitAllowedIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"selfPermitIfNecessary","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"operator","type":"address"},{"internalType":"bool","name":"approved","type":"bool"}],"name":"setApprovalForAll","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"bytes4","name":"interfaceId","type":"bytes4"}],"name":"supportsInterface","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"sweepToken","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenOfOwnerByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amount0Owed","type":"uint256"},{"internalType":"uint256","name":"amount1Owed","type":"uint256"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"uniswapV3MintCallback","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"amountMinimum","type":"uint256"},{"internalType":"address","name":"recipient","type":"address"}],"name":"unwrapWETH9","outputs":[],"stateMutability":"payable","type":"function"},{"stateMutability":"payable","type":"receive"}];
@@ -154,14 +170,14 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
       const tickLower = positionInfo.tickLower;
       const tickUpper = positionInfo.tickUpper;
 
-      if (currentTick > tickLower) {
-        setIsInRange(false);
-        setTokenSymbolToAddWhenOutOfRange(token1.symbol);
-        setTokenObjectToAddWhenOutOfRange(token1);
-      } else if (currentTick < tickUpper) {
+      if (currentTick < tickLower) {
         setIsInRange(false);
         setTokenSymbolToAddWhenOutOfRange(token0.symbol);
         setTokenObjectToAddWhenOutOfRange(token0);
+      } else if (currentTick > tickUpper) {
+        setIsInRange(false);
+        setTokenSymbolToAddWhenOutOfRange(token1.symbol);
+        setTokenObjectToAddWhenOutOfRange(token1);
       } else {
         setIsInRange(true);
         setTokenSymbolToAddWhenOutOfRange('');
@@ -185,27 +201,199 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
     const enteredAmount0 = parseFloat(amountToAddToken0);
     const enteredAmount1 = parseFloat(amountToAddToken1);
 
+     
+
     if (isInRange) {
-      if (enteredAmount0 > 0 && enteredAmount1 > 0) {
-        amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
-        amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals);
-      } else if (enteredAmount0 > 0) {
-        amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
-        setProcessStatus(`For in-range positions, ideally both token amounts are provided or one is calculated from the other. Proceeding with ${token0.symbol} only.`);
-      } else if (enteredAmount1 > 0) {
-        amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals);
-        setProcessStatus(`For in-range positions, ideally both token amounts are provided or one is calculated from the other. Proceeding with ${token1.symbol} only.`);
-      } else {
-        setProcessStatus("Please enter an amount for at least one token.");
+      try {
+        const sdkToken0 = new Token(CHAIN_ID, token0.address, token0.decimals, token0.symbol);
+        const sdkToken1 = new Token(CHAIN_ID, token1.address, token1.decimals, token1.symbol);
+        
+        console.log('Position Info:', {
+          fee: positionInfo.fee,
+          token0: token0.address,
+          token1: token1.address,
+          liquidity: positionInfo.liquidity,
+          currentTick: positionInfo.currentTick
+        });
+
+        const factoryAddress = import.meta.env.VITE_UNISWAP_V3_FACTORY_ADDRESS || UNISWAP_V3_FACTORY_ADDRESS;
+        if (!factoryAddress) {
+          throw new Error('Factory address is not configured');
+        }
+
+        console.log('Getting pool address from factory:', {
+          factoryAddress,
+          token0: token0.address,
+          token1: token1.address,
+          fee: positionInfo.fee
+        });
+
+        const factoryContract = new ethers.Contract(
+          factoryAddress,
+          UNISWAP_V3_FACTORY_ABI,
+          provider
+        );
+
+        const poolAddress = await factoryContract.getPool(
+          token0.address,
+          token1.address,
+          positionInfo.fee
+        );
+
+        if (!poolAddress || poolAddress === ethers.ZeroAddress) {
+          throw new Error('Pool not found for token pair and fee tier');
+        }
+
+        console.log('Found pool address:', poolAddress);
+
+        const poolContract = new ethers.Contract(
+          poolAddress,
+          UNISWAP_V3_POOL_ABI,
+          provider
+        );
+
+         
+        const slot0Data = await poolContract.slot0();
+        const sqrtPriceX96 = slot0Data.sqrtPriceX96;
+        const tickFromSlot0 = slot0Data.tick;
+
+         
+
+        const sqrtPriceX96BigInt = BigInt(sqrtPriceX96.toString());
+        if (sqrtPriceX96BigInt < TickMath.MIN_SQRT_RATIO || sqrtPriceX96BigInt >= TickMath.MAX_SQRT_RATIO) {
+          console.error('Price out of bounds (checked with SDK constants):', {
+            price: sqrtPriceX96BigInt.toString(),
+            min: TickMath.MIN_SQRT_RATIO.toString(), // TickMath константы тоже должны быть bigint
+            max: TickMath.MAX_SQRT_RATIO.toString()
+          });
+          throw new Error('Pool price is out of bounds according to SDK constants');
+        }
+
+        if (!sqrtPriceX96) {
+          throw new Error('Failed to fetch sqrtPriceX96 from pool');
+        }
+        if (!positionInfo.liquidity) {
+          throw new Error('liquidity is undefined or invalid');
+        }
+        if (typeof positionInfo.currentTick !== 'number') {
+          throw new Error('currentTick is undefined or invalid');
+        }
+        if (!positionInfo.fee) {
+          throw new Error('fee is undefined or invalid');
+        }
+        
+        const sqrtPriceX96String = sqrtPriceX96.toString();
+        const liquidityString = positionInfo.liquidity.toString();
+        const pool = new Pool(
+          sdkToken0,
+          sdkToken1,
+          positionInfo.fee,
+          sqrtPriceX96String,
+          liquidityString,
+          Number(tickFromSlot0)
+        );
+
+        let position;
+        if (enteredAmount0 > 0) {
+          const amount0Wei = ethers.parseUnits(amountToAddToken0, token0.decimals || 18);
+          try {
+            console.log('Creating position from amount0:', {
+              tickLower: positionInfo.tickLower,
+              tickUpper: positionInfo.tickUpper,
+              amount0Wei: amount0Wei.toString(),
+              token0Decimals: token0.decimals,
+              token1Decimals: token1.decimals
+            });
+
+            position = Position.fromAmount0({
+              pool,
+              tickLower: positionInfo.tickLower,
+              tickUpper: positionInfo.tickUpper,
+              amount0: amount0Wei.toString(),
+              useFullPrecision: true
+            });
+
+            if (!position || !position.amount0 || !position.amount1) {
+              throw new Error('Invalid position calculation');
+            }
+
+            amount0DesiredWei = amount0Wei;
+            const amount1Quotient = position.amount1.quotient;
+            if (!amount1Quotient) {
+              throw new Error('amount1Quotient is undefined');
+            }
+            amount1DesiredWei = BigInt(amount1Quotient.toString());
+
+            if (amount0DesiredWei <= 0n || amount1DesiredWei <= 0n) {
+              throw new Error('Invalid amounts calculated');
+            }
+          } catch (posError) {
+            console.error('Position calculation error:', posError);
+            throw new Error(`Failed to calculate position from amount0: ${posError.message}`);
+          }
+        } else if (enteredAmount1 > 0) {
+          const amount1Wei = ethers.parseUnits(amountToAddToken1, token1.decimals);
+          try {
+            console.log('Creating position from amount1:', {
+              tickLower: positionInfo.tickLower,
+              tickUpper: positionInfo.tickUpper,
+              amount1Wei: amount1Wei.toString()
+            });
+
+            position = Position.fromAmount1({
+              pool,
+              tickLower: positionInfo.tickLower,
+              tickUpper: positionInfo.tickUpper,
+              amount1: amount1Wei.toString(),
+              useFullPrecision: true
+            });
+
+            if (!position || !position.amount0 || !position.amount1) {
+              throw new Error('Invalid position calculation');
+            }
+
+            const amount0Quotient = position.amount0.quotient;
+            if (!amount0Quotient) {
+              throw new Error('amount0Quotient is undefined');
+            }
+            amount0DesiredWei = BigInt(amount0Quotient.toString());
+            amount1DesiredWei = amount1Wei;
+
+            if (amount0DesiredWei <= 0n || amount1DesiredWei <= 0n) {
+              throw new Error('Invalid amounts calculated');
+            }
+          } catch (posError) {
+            console.error('Position calculation error:', posError);
+            throw new Error(`Failed to calculate position from amount1: ${posError.message}`);
+          }
+        }
+
+        console.log('In Range - Calculated amounts:', {
+          amount0DesiredWei: amount0DesiredWei.toString(),
+          amount1DesiredWei: amount1DesiredWei.toString(),
+          amount0Formatted: ethers.formatUnits(amount0DesiredWei, token0.decimals),
+          amount1Formatted: ethers.formatUnits(amount1DesiredWei, token1.decimals)
+        });
+      } catch (error) {
+        console.error('Error calculating amounts:', error);
+        setProcessStatus(`Error calculating token amounts: ${error.message}`);
         return;
       }
     } else {
       if (tokenObjectToAddWhenOutOfRange?.address === token0.address && enteredAmount0 > 0) {
-        amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals);
+        amount0DesiredWei = ethers.parseUnits(amountToAddToken0, token0.decimals || 18);
         amount1DesiredWei = 0n;
+        console.log('Out of Range - Token0:', {
+          amount0DesiredWei: amount0DesiredWei.toString(),
+          amount1DesiredWei: '0'
+        });
       } else if (tokenObjectToAddWhenOutOfRange?.address === token1.address && enteredAmount1 > 0) {
-        amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals);
+        amount1DesiredWei = ethers.parseUnits(amountToAddToken1, token1.decimals || 18);
         amount0DesiredWei = 0n;
+        console.log('Out of Range - Token1:', {
+          amount0DesiredWei: '0',
+          amount1DesiredWei: amount1DesiredWei.toString()
+        });
       } else {
         setProcessStatus(`Please enter an amount for ${tokenSymbolToAddWhenOutOfRange}.`);
         return;
