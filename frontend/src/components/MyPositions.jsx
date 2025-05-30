@@ -38,13 +38,11 @@ function MyPositions({
                         <PositionCard
                             key={posData.tokenId}
                             provider={provider}
-                            tokenId={posData.tokenId}
-                            positionInfo={posData.positionInfo}
-                            fees={posData.fees}
+                            positionData={posData}
                             signer={signer}
                             userAddress={userAddress}
                             isWalletConnected={isWalletConnected}
-                            onPositionUpdate={onPositionUpdate} // Вызываем общий колбэк
+                            onPositionUpdate={onPositionUpdate}
                         />
                     ))}
                 </div>

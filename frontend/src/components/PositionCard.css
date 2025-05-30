@@ -1,4 +1,3 @@
- 
 .position-card {
     background-color: #353547; 
     border: 1px solid #404058;  
@@ -345,4 +344,57 @@
 .action-button.approve-operator:hover:not(:disabled) {
     background: linear-gradient(145deg, #f1c40f, #d35400);
     box-shadow: 0 4px 10px rgba(230, 126, 34, 0.4);
+}
+
+.pnl-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #27262c;
+    border-radius: 12px;
+    border: 1px solid #404058;
+}
+
+.pnl-header {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: #e0e0e0;
+}
+
+.pnl-details-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.pnl-label {
+    color: #a5a2b3;
+}
+
+.pnl-value {
+    color: #e0e0e0;
+    text-align: right;
+}
+
+.pnl-result-label {
+    color: #e0e0e0;
+    font-weight: 500;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+    border-top: 1px dashed #404058;
+}
+
+.pnl-result-value {
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+    border-top: 1px dashed #404058;
+    font-weight: 500;
+}
+
+.positive-pnl {
+    color: #27ae60;
+}
+
+.negative-pnl {
+    color: #e74c3c;
 }

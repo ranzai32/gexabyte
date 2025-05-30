@@ -84,11 +84,12 @@ async function getPositionDetails(tokenId, signerOrProvider) {
                         tickLower: Number(positionInfoRaw.tickLower),
                         tickUpper: Number(positionInfoRaw.tickUpper)
                     });
-                    calculatedAmount0 = positionSDK.amount0.toSignificant(6);
-                    calculatedAmount1 = positionSDK.amount1.toSignificant(6);
+                    // Используем quotient вместо toSignificant для получения точных значений в wei
+                    calculatedAmount0 = positionSDK.amount0.quotient.toString();
+                    calculatedAmount1 = positionSDK.amount1.quotient.toString();
                     console.log("  [getPositionDetails] Информация о позиции из SDK (расчетные текущие количества):");
-                    console.log(`    Amount0 (${positionSDK.amount0.currency.symbol}): ${calculatedAmount0}`);
-                    console.log(`    Amount1 (${positionSDK.amount1.currency.symbol}): ${calculatedAmount1}`);
+                    console.log(`    Amount0 (${positionSDK.amount0.currency.symbol}): ${ethers.formatUnits(calculatedAmount0, positionSDK.amount0.currency.decimals)}`);
+                    console.log(`    Amount1 (${positionSDK.amount1.currency.symbol}): ${ethers.formatUnits(calculatedAmount1, positionSDK.amount1.currency.decimals)}`);
                  } catch (sdkError) {
                     console.error(`[getPositionDetails] Ошибка при создании объекта Position SDK для tokenId ${tokenId}:`, sdkError.message);
                     // positionSDK останется null

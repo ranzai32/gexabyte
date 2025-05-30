@@ -295,6 +295,7 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
           if (hex.length > 138) {
             try {
               errMsg = ethers.toUtf8String("0x" + hex.substring(138));
+            // eslint-disable-next-line no-unused-vars
             } catch (decodeError) { /* оставляем предыдущее сообщение */ }
           }
         }
@@ -363,6 +364,38 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
         }
         decreaseTxSuccessful = true;
         actualLiquidityAfterDecrease = currentLiquidityBigInt - liquidityToRemove;
+
+        // Обновляем начальную ликвидность в базе данных
+        try {
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+          const currentAmount0 = BigInt(positionInfo.amount0);
+          const currentAmount1 = BigInt(positionInfo.amount1);
+          const removedPercentage = BigInt(removeLiquidityPercentage);
+          
+          // Вычисляем новые значения начальной ликвидности
+          const newAmount0 = (currentAmount0 * (100n - removedPercentage)) / 100n;
+          const newAmount1 = (currentAmount1 * (100n - removedPercentage)) / 100n;
+
+          const response = await fetch(`${backendUrl}/api/positions/update-initial-liquidity`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tokenId: tokenId,
+              newAmount0Wei: newAmount0.toString(),
+              newAmount1Wei: newAmount1.toString()
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Failed to update initial liquidity on backend:", errorData);
+            setProcessStatus(`Liquidity decreased on-chain, but backend update failed: ${errorData.error || 'Unknown error'}`);
+          }
+        } catch (backendError) {
+          console.error("Error updating initial liquidity on backend:", backendError);
+          setProcessStatus(`Liquidity decreased on-chain, but backend update error: ${backendError.message}`);
+        }
+
         setProcessStatus(`Liquidity successfully decreased! ${decreaseTxHash ? `Tx: ${decreaseTxHash.substring(0,10)}... ` : ''}Now collecting funds...`);
       } else if (removeLiquidityPercentage > 0) {
         setProcessStatus("Current position liquidity is zero. Proceeding to collect fees...");
@@ -388,7 +421,48 @@ function ManageLiquidityPage({ isWalletConnected, provider, signer, userAddress 
       if (collectReceipt.status !== 1) {
         setProcessStatus(`Warning: Failed to collect funds/fees (Tx: ${collectTx.hash.substring(0,10)}...). If you proceed with burning the NFT, these funds might be lost.`);
       } else {
-        setProcessStatus(`Funds and fees successfully collected! Tx: ${collectTx.hash.substring(0,10)}...`);
+        try {
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+          let amount0CollectedFromEvent = 0n;
+          let amount1CollectedFromEvent = 0n;
+          const eventInterface = new ethers.Interface(INonfungiblePositionManagerABI_Manage);
+          for (const log of collectReceipt.logs) {
+            try {
+              if (log.address.toLowerCase() === nftManagerAddress.toLowerCase()) {
+                const parsedLog = eventInterface.parseLog({ topics: [...log.topics], data: log.data });
+                if (parsedLog && parsedLog.name === "Collect" && parsedLog.args.tokenId.toString() === tokenId.toString()) {
+                  amount0CollectedFromEvent = parsedLog.args.amount0;
+                  amount1CollectedFromEvent = parsedLog.args.amount1;
+                  break;
+                }
+              }
+            } catch (e) { /* ignore parsing errors */ }
+          }
+
+          if (amount0CollectedFromEvent > 0n || amount1CollectedFromEvent > 0n) {
+            const response = await fetch(`${backendUrl}/api/positions/update-collected-fees`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tokenId: tokenId,
+                collectedAmount0Wei: amount0CollectedFromEvent.toString(),
+                collectedAmount1Wei: amount1CollectedFromEvent.toString()
+              })
+            });
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error("Failed to update collected fees on backend:", errorData);
+              setProcessStatus(`Funds and fees collected on-chain, but backend update failed: ${errorData.error || 'Unknown error'}`);
+            } else {
+              setProcessStatus(`Funds and fees successfully collected! Tx: ${collectTx.hash.substring(0,10)}...`);
+            }
+          } else {
+            setProcessStatus(`Funds and fees successfully collected! Tx: ${collectTx.hash.substring(0,10)}...`);
+          }
+        } catch (backendError) {
+          console.error("Error calling backend to update fees:", backendError);
+          setProcessStatus(`Funds and fees collected on-chain, but backend update error: ${backendError.message}`);
+        }
       }
 
       if (removeLiquidityPercentage === 100 && actualLiquidityAfterDecrease === 0n) {

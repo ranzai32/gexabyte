@@ -19,28 +19,32 @@ function EarnPage({ isWalletConnected, provider, signer, userAddress }) {
   const fetchUserPositions = useCallback(async () => {
     if (!isWalletConnected || !userAddress) {
       setUserPositions([]);
-      setMyPositionsError('');
       return;
     }
+
     setIsLoadingMyPositions(true);
-    setMyPositionsError('');
+    setMyPositionsError(null);
+
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
       const response = await fetch(`${backendUrl}/api/user-positions/${userAddress}`);
-      if (!response.ok) {
-        let errorMsg = `Failed to fetch user positions: ${response.status}`;
-        try { const errData = await response.json(); errorMsg = errData.error || errorMsg; } catch (e) { /* ignore */ }
-        throw new Error(errorMsg);
-      }
       const data = await response.json();
-      setUserPositions(data);
-      if (data.length === 0) {
-        setMyPositionsError('No liquidity positions found for this address.');
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch positions');
+      }
+
+      console.log('EarnPage: Received positions data:', data);
+      
+      if (Array.isArray(data)) {
+        setUserPositions(data);
+      } else {
+        console.error('EarnPage: Unexpected positions data format:', data);
+        setMyPositionsError('Received invalid data format from server');
       }
     } catch (error) {
-      console.error("EarnPage: Error fetching user positions:", error);
-      setMyPositionsError(error.message || "An unknown error occurred while fetching your positions.");
-      setUserPositions([]);
+      console.error('EarnPage: Error fetching positions:', error);
+      setMyPositionsError(error.message);
     } finally {
       setIsLoadingMyPositions(false);
     }

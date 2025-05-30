@@ -437,8 +437,41 @@ function AddLiquidityPage({ isWalletConnected, provider, signer, userAddress }) 
                     // eslint-disable-next-line no-unused-vars
                     } catch (e) { /* ignore */ }
                 }
-                setProcessStatus(`New position successfully minted! ${mintedTokenId ? `Token ID: ${mintedTokenId}`: ''} Tx: ${mintTx.hash.substring(0,10)}...`);
-                setAmount0Input(''); setAmount1Input(''); 
+
+                if (mintedTokenId) {
+                    try {
+                        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+                        const response = await fetch(`${backendUrl}/api/positions/track-manual-mint`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                tokenId: mintedTokenId,
+                                userAddress: userAddress,
+                                token0Address: contractParamToken0.address,
+                                token1Address: contractParamToken1.address,
+                                initialAmount0Wei: contractParamAmount0Desired.toString(),
+                                initialAmount1Wei: contractParamAmount1Desired.toString(),
+                                fee: selectedFeeTier,
+                                tickLower: parseInt(tickLower),
+                                tickUpper: parseInt(tickUpper)
+                            })
+                        });
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            console.error("Backend error tracking position:", errorData);
+                            setProcessStatus(`Position created, but tracking failed: ${errorData.error || 'Unknown error'}`);
+                        } else {
+                            setProcessStatus(`New position successfully minted! ${mintedTokenId ? `Token ID: ${mintedTokenId}`: ''} Tx: ${mintTx.hash.substring(0,10)}...`);
+                        }
+                    } catch (backendError) {
+                        console.error("Error updating backend after mint:", backendError);
+                        setProcessStatus(`Position created, but tracking failed: ${backendError.message}`);
+                    }
+                } else {
+                    setProcessStatus(`New position successfully minted! Tx: ${mintTx.hash.substring(0,10)}... (TokenId not found in logs)`);
+                }
+                setAmount0Input(''); 
+                setAmount1Input(''); 
                 lastEditedFieldRef.current = null;
             } else { throw new Error("Mint transaction failed (reverted)."); }
         } catch (error) {
