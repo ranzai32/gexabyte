@@ -121,6 +121,18 @@ async function checkAndRebalance(tokenId, userAddress, token0AddrCanonical, toke
             return;
         }
 
+        if (!token0AddrCanonical || typeof token0AddrCanonical !== 'string' || !ethers.isAddress(token0AddrCanonical)) {
+            console.error(`[AutoManage] FATAL: Invalid or missing token0AddrCanonical for tokenId ${tokenId}: Value='${token0AddrCanonical}', Type='${typeof token0AddrCanonical}'. Halting monitor for this token.`);
+            await stopMonitoringPosition(tokenId, pgPoolInstance);
+            return;
+        }
+
+        if (!token1AddrCanonical || typeof token1AddrCanonical !== 'string' || !ethers.isAddress(token1AddrCanonical)) {
+            console.error(`[AutoManage] FATAL: Invalid or missing token1AddrCanonical for tokenId ${tokenId}: Value='${token1AddrCanonical}', Type='${typeof token1AddrCanonical}'. Halting monitor for this token.`);
+            await stopMonitoringPosition(tokenId, pgPoolInstance);
+            return;
+        }
+
         const defaultStrategy = { rangePercentage: 5, checkIntervalMinutes: 5, rebalanceSlippageBips: 50, swapPercentageForRebalance: 50 }; 
         const currentStrategyParams = { ...defaultStrategy, ...(strategyParamsInput || {}) };
         
@@ -199,6 +211,36 @@ async function checkAndRebalance(tokenId, userAddress, token0AddrCanonical, toke
                     const collectTx = await positionManager.collect(collectParams, {gasLimit: collectTxGas + BigInt(50000) });
                     console.log(`[AutoManage] Collect transaction sent: ${collectTx.hash}. Waiting for confirmation...`);
                     const collectReceipt = await collectTx.wait(1);
+
+                    const clientForFeeUpdate = await pgPoolInstance.connect();
+
+                    try {
+                        // Использовать clientForFeeUpdate.query(...) для SELECT FOR UPDATE и UPDATE
+                        const currentFeesResult = await clientForFeeUpdate.query(
+                            'SELECT cumulative_fees_token0_wei, cumulative_fees_token1_wei FROM auto_managed_positions WHERE token_id = $1 FOR UPDATE',
+                            [oldTokenId]
+                        );
+                        if (currentFeesResult.rows.length > 0) {
+                            const currentCumulative0 = BigInt(currentFeesResult.rows[0].cumulative_fees_token0_wei || '0');
+                            const currentCumulative1 = BigInt(currentFeesResult.rows[0].cumulative_fees_token1_wei || '0');
+                            const newCumulative0 = currentCumulative0 + amount0Collected; // amount0Collected должно быть определено ранее
+                            const newCumulative1 = currentCumulative1 + amount1Collected; // amount1Collected должно быть определено ранее
+
+                            await clientForFeeUpdate.query(
+                                'UPDATE auto_managed_positions SET cumulative_fees_token0_wei = $1, cumulative_fees_token1_wei = $2, status_message = $3, updated_at = NOW() WHERE token_id = $4',
+                                [newCumulative0.toString(), newCumulative1.toString(), 'Auto-collected fees updated after rebalance step.', oldTokenId]
+                            );
+                            console.log(`[AutoManage] Updated cumulative fees in DB for tokenId ${oldTokenId} (isolated tx).`);
+                        }
+                        // Здесь нет COMMIT/ROLLBACK, так как предполагается авто-коммит для отдельных запросов вне явной транзакции,
+                        // либо вы можете обернуть это в BEGIN/COMMIT если нужно.
+                        // Однако, SELECT FOR UPDATE обычно используется внутри транзакции.
+                    } catch (dbFeeError) {
+                        console.error(`[AutoManage] Error during isolated DB update for collected fees, tokenId ${oldTokenId}:`, dbFeeError);
+                        // Не нужно делать ROLLBACK, если не было BEGIN
+                    } finally {
+                        if (clientForFeeUpdate) clientForFeeUpdate.release();
+                    }
                     if (collectReceipt.status !== 1) throw new Error(`Collect failed. Hash: ${collectTx.hash}`);
                     console.log(`[AutoManage] Fees and tokens collected. Tx: ${collectTx.hash}`);
 
@@ -565,7 +607,7 @@ async function checkAndRebalance(tokenId, userAddress, token0AddrCanonical, toke
             await pgPoolInstance.query('UPDATE auto_managed_positions SET last_checked_at = NOW(), status_message = $2 WHERE token_id = $1', [oldTokenId, 'In range']);
         }
     } catch (error) { 
-        console.error(`[AutoManage] Outer error processing tokenId ${oldTokenId}:`, error);
+        console.error(`[AutoManage] Outer error processing tokenId ${tokenId}:`, error);
         try {
             const manager = positionManager || new ethers.Contract(UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, INonfungiblePositionManagerABI, backendOperatorWallet);
             const nftStillExists = await manager.ownerOf(oldTokenId).then(() => true).catch(() => false);
@@ -630,28 +672,56 @@ async function initializeAutoManagement(pgPoolInstance) {
         );
         console.log(`[AutoManage Init] Found ${result.rows.length} positions to auto-manage.`);
         for (const row of result.rows) {
-            const defaultStrategy = { rangePercentage: 5, checkIntervalMinutes: 5, rebalanceSlippage: 0.5 };
-            // Здесь row.strategy_parameters - это то, что пришло из БД
+            const defaultStrategy = { rangePercentage: 5, checkIntervalMinutes: 5, rebalanceSlippageBips: 50, swapPercentageForRebalance: 50 };
             const currentStrategyParamsForRow = { ...defaultStrategy, ...(row.strategy_parameters || {}) };
 
-            if (!row.token0_address || !row.token1_address) {
-                console.warn(`[AutoManage Init] Missing token addresses for tokenId ${row.token_id}. Attempting to refetch.`);
+            let addr0 = row.token0_address;
+            let addr1 = row.token1_address;
+            let source = "DB";
+
+            if (!addr0 || typeof addr0 !== 'string' || !ethers.isAddress(addr0) || addr0 === ethers.ZeroAddress ||
+                !addr1 || typeof addr1 !== 'string' || !ethers.isAddress(addr1) || addr1 === ethers.ZeroAddress) {
+                
+                console.warn(`[AutoManage Init] Missing or invalid token addresses in DB for tokenId ${row.token_id}. DB values - token0: "${addr0}", token1: "${addr1}". Attempting to refetch.`);
+                source = "Refetch";
+                addr0 = null; // Сброс перед повторным получением
+                addr1 = null; // Сброс перед повторным получением
                 try {
                     const posDetails = await getPositionDetails(row.token_id, provider);
-                    if (posDetails && posDetails.token0 !== ethers.ZeroAddress) {
-                        await pgPoolInstance.query(
-                            'UPDATE auto_managed_positions SET token0_address = $1, token1_address = $2 WHERE token_id = $3',
-                            [posDetails.token0, posDetails.token1, row.token_id]
-                        );
-                        startMonitoringPosition(row.token_id, currentStrategyParamsForRow, row.user_address, posDetails.token0, posDetails.token1, pgPoolInstance);
+                    if (posDetails && posDetails.rawPositionInfo &&
+                        posDetails.rawPositionInfo.token0 && typeof posDetails.rawPositionInfo.token0 === 'string' && ethers.isAddress(posDetails.rawPositionInfo.token0) && posDetails.rawPositionInfo.token0 !== ethers.ZeroAddress &&
+                        posDetails.rawPositionInfo.token1 && typeof posDetails.rawPositionInfo.token1 === 'string' && ethers.isAddress(posDetails.rawPositionInfo.token1) && posDetails.rawPositionInfo.token1 !== ethers.ZeroAddress) {
+                        
+                        addr0 = posDetails.rawPositionInfo.token0;
+                        addr1 = posDetails.rawPositionInfo.token1;
+                        console.log(`[AutoManage Init] Successfully refetched addresses for tokenId ${row.token_id}: token0: ${addr0}, token1: ${addr1}`);
+                        
+                        if (addr0 !== row.token0_address || addr1 !== row.token1_address) {
+                             await pgPoolInstance.query(
+                                'UPDATE auto_managed_positions SET token0_address = $1, token1_address = $2, updated_at = NOW() WHERE token_id = $3',
+                                [addr0, addr1, row.token_id]
+                            );
+                            console.log(`[AutoManage Init] Updated DB with refetched addresses for tokenId ${row.token_id}.`);
+                        }
                     } else {
-                         console.error(`[AutoManage Init] Still could not get token addresses for tokenId ${row.token_id} after refetch.`);
+                        console.error(`[AutoManage Init] Refetch failed to get valid token addresses for tokenId ${row.token_id}. Details:`, posDetails ? posDetails.rawPositionInfo : 'posDetails was null');
                     }
                 } catch (e) {
-                     console.error(`[AutoManage Init] Error fetching position details for tokenId ${row.token_id} during init:`, e);
+                    console.error(`[AutoManage Init] Error during refetch for tokenId ${row.token_id}:`, e);
                 }
+            }
+
+            // Финальная проверка перед запуском мониторинга
+            if (addr0 && typeof addr0 === 'string' && ethers.isAddress(addr0) && addr0 !== ethers.ZeroAddress &&
+                addr1 && typeof addr1 === 'string' && ethers.isAddress(addr1) && addr1 !== ethers.ZeroAddress) {
+                console.log(`[AutoManage Init] Validated addresses for tokenId ${row.token_id} from ${source}. Starting monitor.`);
+                startMonitoringPosition(row.token_id, currentStrategyParamsForRow, row.user_address, addr0, addr1, pgPoolInstance);
             } else {
-                startMonitoringPosition(row.token_id, currentStrategyParamsForRow, row.user_address, row.token0_address, row.token1_address, pgPoolInstance);
+                console.error(`[AutoManage Init] Could not obtain valid token addresses for tokenId ${row.token_id} from ${source}. (token0: "${addr0}", token1: "${addr1}"). Monitoring not started.`);
+                await pgPoolInstance.query(
+                    'UPDATE auto_managed_positions SET is_enabled = FALSE, status_message = $1, updated_at = NOW() WHERE token_id = $2',
+                    [`Failed to initialize: Invalid token addresses. token0: "${addr0}", token1: "${addr1}"`, row.token_id]
+                );
             }
         }
     } catch (error) {

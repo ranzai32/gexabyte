@@ -234,14 +234,13 @@ app.get('/api/position-details/:tokenId', async (req, res) => {
         // 1. Получаем данные о позиции и несобранных комиссиях с блокчейна
         const positionDetailsResult = await getPositionDetails(parsedTokenId, provider);
 
-        if (!positionDetailsResult || !positionDetailsResult.rawPositionInfo ||
-            positionDetailsResult.rawPositionInfo.token0 === ethers.ZeroAddress) {
-            return res.status(404).json({ error: `Position with tokenId ${parsedTokenId} not found or invalid.` });
+        if (!positionDetails || !positionDetails.rawPositionInfo || positionDetails.rawPositionInfo.token0 === ethers.ZeroAddress) {
+            return res.status(404).json({ error: "Position details not found for tokenId." });
         }
 
         console.log(`[API /position-details] Данные позиции получены:`, {
             calculatedAmount0: positionDetailsResult.calculatedAmount0,
-            calculatedAmount1: positionDetailsResult.calculatedAmount1,
+            calculatedAmount1: positionDetailsResult.calculatedAmount1, 
             token0: positionDetailsResult.rawPositionInfo.token0,
             token1: positionDetailsResult.rawPositionInfo.token1
         });
@@ -825,10 +824,10 @@ app.post('/api/auto-manage/toggle', async (req, res) => {
             console.log(`[API /auto-manage/toggle] Auto-management ENABLED for tokenId ${parsedTokenId} by ${userAddress}. Parameters:`, updatedDbState.strategy_parameters);
             startMonitoringPosition(
                 parsedTokenId,
-                updatedDbState.strategy_parameters,  
+                updatedDbState.strategy_parameters,
                 userAddress,
-                positionDetails.token0,
-                positionDetails.token1,
+                positionDetails.rawPositionInfo.token0,  
+                positionDetails.rawPositionInfo.token1,  
                 pgPool
             );
         } else {
