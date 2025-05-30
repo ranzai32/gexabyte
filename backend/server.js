@@ -1,19 +1,16 @@
-require('dotenv').config({ path: './.env' }); // Убедитесь, что .env в корне backend
-const { ethers } = require('ethers'); 
+require('dotenv').config({ path: './.env' });  
+const { ethers } = require('ethers');
+const { Token: UniswapToken } = require('@uniswap/sdk-core'); 
+const { provider, CHAIN_ID, UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS } = require('./src/config');
+const { getPositionDetails, INonfungiblePositionManagerABI } = require('./src/uniswapPositionUtils');
+const { getUncollectedFees } = require('./src/uniswapFeeUtils');
+const { getPoolData } = require('./src/uniswapPoolUtils');  
+const { getTokenDetailsByAddressOnBackend } = require('./src/constants/predefinedTokens');
 const express = require('express');
 const cors = require('cors');
 const NodeCache = require( "node-cache" );
 const positionsCache = new NodeCache( { stdTTL: 120, checkperiod: 150 } );
-const { getTokenDetailsByAddressOnBackend } = require('./src/constants/predefinedTokens');
 const { Pool } = require('pg');
-
-// Импортируем необходимые части из вашей существующей конфигурации и утилит
-// Пути должны быть относительны server.js
-const { provider, TokenA, TokenB, CHAIN_ID, UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS } = require('./src/config'); 
-const { getPositionDetails, INonfungiblePositionManagerABI } = require('./src/uniswapPositionUtils'); // Импортируем ABI
-const { getPoolData } = require('./src/uniswapPoolUtils'); //
-const { getUncollectedFees } = require('./src/uniswapFeeUtils'); //
-const { Token: UniswapToken } = require('@uniswap/sdk-core'); // Переименовываем, чтобы не конфликтовать с Token из config
 const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;
 const app = express();
 const PORT = 3001;
@@ -21,7 +18,7 @@ const IQuoterV2_ABI = require('./src/abi/IQuoterV2_ABI.json');
 
 const {
     initializeAutoManagement,
-    startMonitoringPosition, // Импортируем, если они вызываются из маршрутов
+    startMonitoringPosition,  
     stopMonitoringPosition  // Импортируем, если они вызываются из маршрутов
 } = require('./src/services/autoManageService.js');
 
@@ -233,74 +230,114 @@ app.get('/api/position-details/:tokenId', async (req, res) => {
 
     try {
         console.log(`[API /position-details] Запрос для tokenId: ${parsedTokenId}`);
-        const positionInfoRaw = await getPositionDetails(parsedTokenId, provider); //
 
-        if (!positionInfoRaw || positionInfoRaw.token0 === '0x0000000000000000000000000000000000000000') {
+        // 1. Получаем данные о позиции и несобранных комиссиях с блокчейна
+        const positionDetailsResult = await getPositionDetails(parsedTokenId, provider); // Ваша исправленная функция
+
+        if (!positionDetailsResult || !positionDetailsResult.rawPositionInfo ||
+            positionDetailsResult.rawPositionInfo.token0 === ethers.ZeroAddress) {
             return res.status(404).json({ error: `Position with tokenId ${parsedTokenId} not found or invalid.` });
         }
-        
-        // Первоначальное формирование positionInfo с преобразованием BigInt в строки
-        let positionInfo = { // Используем let, так как будем добавлять currentTick
-            nonce: positionInfoRaw.nonce.toString(),
-            operator: positionInfoRaw.operator,
-            token0: positionInfoRaw.token0,
-            token1: positionInfoRaw.token1,
-            fee: Number(positionInfoRaw.fee),
-            tickLower: Number(positionInfoRaw.tickLower),
-            tickUpper: Number(positionInfoRaw.tickUpper),
-            liquidity: positionInfoRaw.liquidity.toString(),
-            feeGrowthInside0LastX128: positionInfoRaw.feeGrowthInside0LastX128.toString(),
-            feeGrowthInside1LastX128: positionInfoRaw.feeGrowthInside1LastX128.toString(),
-            tokensOwed0: positionInfoRaw.tokensOwed0.toString(),
-            tokensOwed1: positionInfoRaw.tokensOwed1.toString()
-            // currentTick будет добавлен ниже
+        const positionInfoRaw = positionDetailsResult.rawPositionInfo;
+
+        // Несобранные комиссии
+        const uncollectedFeesRaw = await getUncollectedFees(parsedTokenId, provider);
+        let uncollectedFees = { feesAmount0: '0', feesAmount1: '0', feeToken0: null, feeToken1: null };
+        if (uncollectedFeesRaw) {
+            const feeToken0Details = uncollectedFeesRaw.feeToken0 ?
+                { address: uncollectedFeesRaw.feeToken0.address, symbol: uncollectedFeesRaw.feeToken0.symbol, decimals: uncollectedFeesRaw.feeToken0.decimals } :
+                (positionDetailsResult.sdkToken0 ? { address: positionDetailsResult.sdkToken0.address, symbol: positionDetailsResult.sdkToken0.symbol, decimals: positionDetailsResult.sdkToken0.decimals } : null) ;
+
+            const feeToken1Details = uncollectedFeesRaw.feeToken1 ?
+                { address: uncollectedFeesRaw.feeToken1.address, symbol: uncollectedFeesRaw.feeToken1.symbol, decimals: uncollectedFeesRaw.feeToken1.decimals } :
+                (positionDetailsResult.sdkToken1 ? { address: positionDetailsResult.sdkToken1.address, symbol: positionDetailsResult.sdkToken1.symbol, decimals: positionDetailsResult.sdkToken1.decimals } : null);
+
+            uncollectedFees = {
+                feesAmount0: (uncollectedFeesRaw.feesAmount0 ?? '0').toString(),
+                feesAmount1: (uncollectedFeesRaw.feesAmount1 ?? '0').toString(),
+                feeToken0: feeToken0Details,
+                feeToken1: feeToken1Details
+            };
+        }
+
+        // 2. Получаем PnL-связанные данные из вашей БД
+        let pnlDataFromDb = {
+            initialAmount0Wei: '0', // Дефолтные значения, если в БД нет
+            initialAmount1Wei: '0',
+            cumulativeFeesToken0Wei: '0',
+            cumulativeFeesToken1Wei: '0'
         };
-
-        const feesRaw = await getUncollectedFees(parsedTokenId, provider); //
-        let fees = null;
-        if (feesRaw) {
-            fees = {
-                feesAmount0: feesRaw.feesAmount0.toString(),
-                feesAmount1: feesRaw.feesAmount1.toString(),
-                feeToken0: feesRaw.feeToken0 ? { address: feesRaw.feeToken0.address, symbol: feesRaw.feeToken0.symbol, decimals: feesRaw.feeToken0.decimals } : null,
-                feeToken1: feesRaw.feeToken1 ? { address: feesRaw.feeToken1.address, symbol: feesRaw.feeToken1.symbol, decimals: feesRaw.feeToken1.decimals } : null,
-            }
-        }
-
-         
-        if (positionInfoRaw.token0 && positionInfoRaw.token0 !== ethers.ZeroAddress && positionInfoRaw.token1 && positionInfoRaw.token1 !== ethers.ZeroAddress) {
-             
-            const tokenDetails0 = await getTokenDetailsByAddressOnBackend(positionInfoRaw.token0); // Предполагается, что эта функция определена и работает
-            const tokenDetails1 = await getTokenDetailsByAddressOnBackend(positionInfoRaw.token1); // Предполагается, что эта функция определена и работает
-
-            if (tokenDetails0 && tokenDetails1) { // Убедимся, что детали токенов получены
-                const t0 = new UniswapToken(CHAIN_ID, positionInfoRaw.token0, tokenDetails0.decimals, tokenDetails0.symbol);
-                const t1 = new UniswapToken(CHAIN_ID, positionInfoRaw.token1, tokenDetails1.decimals, tokenDetails1.symbol);
-                
-                try {
-                    const poolData = await getPoolData(t0, t1, Number(positionInfoRaw.fee)); //
-                    if (poolData) {
-                        positionInfo.currentTick = poolData.tickCurrent; 
-                    } else {
-                        positionInfo.currentTick = null;
-                        console.warn(`[API /position-details] Pool data not found for position ${parsedTokenId}`);
-                    }
-                } catch (poolError) {
-                    positionInfo.currentTick = null;
-                    console.error(`[API /position-details] Error fetching pool data for position ${parsedTokenId}:`, poolError);
-                }
+        try {
+            const dbResult = await pgPool.query(
+                'SELECT initial_amount0_wei, initial_amount1_wei, cumulative_fees_token0_wei, cumulative_fees_token1_wei FROM auto_managed_positions WHERE token_id = $1',
+                [parsedTokenId]
+            );
+            if (dbResult.rows.length > 0) {
+                const row = dbResult.rows[0];
+                pnlDataFromDb = {
+                    initialAmount0Wei: row.initial_amount0_wei || '0',
+                    initialAmount1Wei: row.initial_amount1_wei || '0',
+                    cumulativeFeesToken0Wei: row.cumulative_fees_token0_wei || '0',
+                    cumulativeFeesToken1Wei: row.cumulative_fees_token1_wei || '0'
+                };
             } else {
-                positionInfo.currentTick = null;
-                console.warn(`[API /position-details] Could not get token details for position ${parsedTokenId} to fetch pool data.`);
+                console.warn(`[API /position-details] PnL data not found in DB for tokenId ${parsedTokenId}. Using defaults.`);
             }
-        } else {
-            positionInfo.currentTick = null;  
+        } catch (dbError) {
+            console.error(`[API /position-details] DB error fetching PnL data for tokenId ${parsedTokenId}:`, dbError);
+            // Оставляем дефолтные значения pnlDataFromDb в случае ошибки БД
         }
 
-        res.json({ positionInfo, fees });  
+        // 3. Формируем основной объект positionInfo для ответа
+        // Включаем currentTick и рассчитанные текущие суммы токенов из positionDetailsResult
+        let positionInfoForResponse = {
+            // Основные поля из rawPositionInfo
+            nonce: (positionInfoRaw.nonce ?? 0n).toString(),
+            operator: positionInfoRaw.operator,
+            token0: positionInfoRaw.token0, // Адрес
+            token1: positionInfoRaw.token1, // Адрес
+            fee: Number(positionInfoRaw.fee ?? 0),
+            tickLower: Number(positionInfoRaw.tickLower ?? 0),
+            tickUpper: Number(positionInfoRaw.tickUpper ?? 0),
+            liquidity: (positionInfoRaw.liquidity ?? 0n).toString(),
+            
+            // Детали токенов из sdkToken объектов (если они есть в positionDetailsResult)
+            token0Details: positionDetailsResult.sdkToken0 ? {
+                address: positionDetailsResult.sdkToken0.address,
+                symbol: positionDetailsResult.sdkToken0.symbol,
+                decimals: positionDetailsResult.sdkToken0.decimals
+            } : (uncollectedFees.feeToken0 || null), // Фоллбэк на детали из комиссий
+            token1Details: positionDetailsResult.sdkToken1 ? {
+                address: positionDetailsResult.sdkToken1.address,
+                symbol: positionDetailsResult.sdkToken1.symbol,
+                decimals: positionDetailsResult.sdkToken1.decimals
+            } : (uncollectedFees.feeToken1 || null), // Фоллбэк на детали из комиссий
+
+            // Текущий тик пула
+            currentTick: (positionDetailsResult.pool && typeof positionDetailsResult.pool.tickCurrent === 'number')
+                         ? positionDetailsResult.pool.tickCurrent
+                         : null,
+            
+            // Рассчитанные текущие суммы токенов в позиции (если есть в positionDetailsResult)
+            // эти поля (calculatedAmount0, calculatedAmount1) должны быть строками из toSignificant()
+            calculatedAmount0: positionDetailsResult.calculatedAmount0 || '0',
+            calculatedAmount1: positionDetailsResult.calculatedAmount1 || '0',
+            poolSqrtPriceX96: (positionDetailsResult.pool && positionDetailsResult.pool.sqrtRatioX96)
+                                ? positionDetailsResult.pool.sqrtRatioX96.toString()
+                                : null,
+            poolLiquidity: (positionDetailsResult.pool && positionDetailsResult.pool.liquidity)
+                                ? positionDetailsResult.pool.liquidity.toString()
+                                : null,
+        };
+        
+        res.json({
+            positionInfo: positionInfoForResponse,
+            uncollectedFees: uncollectedFees,  
+            pnlData: pnlDataFromDb  
+        });
 
     } catch (error) {
-        console.error(`[API /position-details] Error for tokenId ${parsedTokenId}:`, error.message, error.stack); // Добавлен error.stack
+        console.error(`[API /position-details] Error for tokenId ${parsedTokenId}:`, error.message, error.stack);
         res.status(500).json({ error: "Failed to get position details", details: error.message });
     }
 });
@@ -320,7 +357,7 @@ app.get('/api/user-positions/:userAddress', async (req, res) => {
     try {
         const positionManagerContract = new ethers.Contract(
             UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
-            INonfungiblePositionManagerABI,
+            INonfungiblePositionManagerABI, // Убедитесь, что этот ABI корректен и импортирован
             provider
         );
 
@@ -336,75 +373,96 @@ app.get('/api/user-positions/:userAddress', async (req, res) => {
         for (let i = 0; i < numPositions; i++) {
             positionsPromises.push(
                 (async () => {
+                    let tokenIdNumber; // Объявляем здесь для доступности в catch
                     try {
                         const tokenIdBigInt = await positionManagerContract.tokenOfOwnerByIndex(userAddress, i);
-                        const tokenIdNumber = parseInt(tokenIdBigInt.toString());
-                        
-                        const [positionInfoRaw, feesRaw] = await Promise.all([
-                            getPositionDetails(tokenIdNumber, provider),
-                            getUncollectedFees(tokenIdNumber, provider)
-                        ]);
+                        tokenIdNumber = parseInt(tokenIdBigInt.toString());
 
-                        if (!positionInfoRaw || positionInfoRaw.token0 === '0x0000000000000000000000000000000000000000') {
-                            console.warn(`[API /user-positions] Could not fetch details for tokenId ${tokenIdNumber}`);
+                        let positionDetailsResult;
+                        let feesResult;
+
+                        try {
+                            [positionDetailsResult, feesResult] = await Promise.all([
+                                getPositionDetails(tokenIdNumber, provider),
+                                getUncollectedFees(tokenIdNumber, provider)
+                            ]);
+                        } catch (fetchError) {
+                            console.error(`[API /user-positions] Error fetching details in Promise.all for tokenId ${tokenIdNumber}:`, fetchError);
+                            return null; // Пропускаем эту позицию, если общая ошибка при параллельных запросах
+                        }
+
+                        if (!positionDetailsResult || !positionDetailsResult.rawPositionInfo ||
+                            (positionDetailsResult.rawPositionInfo && positionDetailsResult.rawPositionInfo.token0 === ethers.ZeroAddress)) {
+                            console.warn(`[API /user-positions] Could not fetch valid details for tokenId ${tokenIdNumber} from getPositionDetails. Skipping this position.`);
                             return null;
                         }
-                        
+
+                        const positionInfoRaw = positionDetailsResult.rawPositionInfo;
+
                         let enrichedPositionInfo = {
                             tokenId: tokenIdNumber,
-                            nonce: positionInfoRaw.nonce.toString(),
-                            operator: positionInfoRaw.operator,
-                            token0: positionInfoRaw.token0,
-                            token1: positionInfoRaw.token1,
-                            fee: Number(positionInfoRaw.fee),
-                            tickLower: Number(positionInfoRaw.tickLower),
-                            tickUpper: Number(positionInfoRaw.tickUpper),
-                            liquidity: positionInfoRaw.liquidity.toString(),
-                            feeGrowthInside0LastX128: positionInfoRaw.feeGrowthInside0LastX128.toString(),
-                            feeGrowthInside1LastX128: positionInfoRaw.feeGrowthInside1LastX128.toString(),
-                            tokensOwed0: positionInfoRaw.tokensOwed0.toString(),
-                            tokensOwed1: positionInfoRaw.tokensOwed1.toString(),
-                            currentTick: null  
+                            nonce: (positionInfoRaw.nonce ?? 0n).toString(),
+                            operator: positionInfoRaw.operator || ethers.ZeroAddress,
+                            token0: positionInfoRaw.token0 || ethers.ZeroAddress,
+                            token1: positionInfoRaw.token1 || ethers.ZeroAddress,
+                            fee: Number(positionInfoRaw.fee ?? 0),
+                            tickLower: Number(positionInfoRaw.tickLower ?? 0),
+                            tickUpper: Number(positionInfoRaw.tickUpper ?? 0),
+                            liquidity: (positionInfoRaw.liquidity ?? 0n).toString(),
+                            feeGrowthInside0LastX128: (positionInfoRaw.feeGrowthInside0LastX128 ?? 0n).toString(),
+                            feeGrowthInside1LastX128: (positionInfoRaw.feeGrowthInside1LastX128 ?? 0n).toString(),
+                            tokensOwed0: (positionInfoRaw.tokensOwed0 ?? 0n).toString(),
+                            tokensOwed1: (positionInfoRaw.tokensOwed1 ?? 0n).toString(),
+                            currentTick: null
                         };
- 
-                        if (enrichedPositionInfo.token0 && enrichedPositionInfo.token0 !== ethers.ZeroAddress && 
-                            enrichedPositionInfo.token1 && enrichedPositionInfo.token1 !== ethers.ZeroAddress) {
+
+                        // Попытка получить currentTick, используя данные из positionDetailsResult или запросив снова
+                        if (positionDetailsResult.pool && typeof positionDetailsResult.pool.tickCurrent === 'number') {
+                            enrichedPositionInfo.currentTick = positionDetailsResult.pool.tickCurrent;
+                        } else if (enrichedPositionInfo.token0 && enrichedPositionInfo.token0 !== ethers.ZeroAddress &&
+                                   enrichedPositionInfo.token1 && enrichedPositionInfo.token1 !== ethers.ZeroAddress) {
                             
                             const tokenDetails0 = await getTokenDetailsByAddressOnBackend(enrichedPositionInfo.token0);
                             const tokenDetails1 = await getTokenDetailsByAddressOnBackend(enrichedPositionInfo.token1);
 
-                            if (tokenDetails0 && tokenDetails1) {
+                            if (tokenDetails0 && tokenDetails1 && typeof tokenDetails0.decimals === 'number' && typeof tokenDetails1.decimals === 'number') {
                                 const t0 = new UniswapToken(CHAIN_ID, enrichedPositionInfo.token0, tokenDetails0.decimals, tokenDetails0.symbol);
                                 const t1 = new UniswapToken(CHAIN_ID, enrichedPositionInfo.token1, tokenDetails1.decimals, tokenDetails1.symbol);
                                 
                                 try {
-                                    const poolData = await getPoolData(t0, t1, enrichedPositionInfo.fee); // Используем fee из enrichedPositionInfo
-                                    if (poolData) {
+                                    const poolData = await getPoolData(t0, t1, enrichedPositionInfo.fee);
+                                    if (poolData && typeof poolData.tickCurrent === 'number') {
                                         enrichedPositionInfo.currentTick = poolData.tickCurrent;
                                     } else {
-                                        console.warn(`[API /user-positions] Pool data not found for position ${tokenIdNumber}`);
+                                        console.warn(`[API /user-positions] Pool data not found or tickCurrent missing for position ${tokenIdNumber} (fallback attempt).`);
                                     }
                                 } catch (poolError) {
-                                    console.error(`[API /user-positions] Error fetching pool data for position ${tokenIdNumber}:`, poolError);
+                                    console.error(`[API /user-positions] Error fetching pool data (fallback attempt) for position ${tokenIdNumber}:`, poolError);
                                 }
                             } else {
-                                console.warn(`[API /user-positions] Could not get token details for position ${tokenIdNumber} to fetch pool data.`);
+                                console.warn(`[API /user-positions] Could not get full token details (decimals) for position ${tokenIdNumber} to fetch pool data (fallback attempt).`);
                             }
                         }
 
+
                         let fees = null;
-                        if (feesRaw) {
+                        if (feesResult) {
                             fees = {
-                                feesAmount0: feesRaw.feesAmount0.toString(),
-                                feesAmount1: feesRaw.feesAmount1.toString(),
-                                feeToken0: feesRaw.feeToken0 ? { address: feesRaw.feeToken0.address, symbol: feesRaw.feeToken0.symbol, decimals: feesRaw.feeToken0.decimals } : null,
-                                feeToken1: feesRaw.feeToken1 ? { address: feesRaw.feeToken1.address, symbol: feesRaw.feeToken1.symbol, decimals: feesRaw.feeToken1.decimals } : null,
-                            }
+                                feesAmount0: (feesResult.feesAmount0 ?? '0').toString(),
+                                feesAmount1: (feesResult.feesAmount1 ?? '0').toString(),
+                                feeToken0: feesResult.feeToken0 ? { address: feesResult.feeToken0.address, symbol: feesResult.feeToken0.symbol, decimals: feesResult.feeToken0.decimals } : null,
+                                feeToken1: feesResult.feeToken1 ? { address: feesResult.feeToken1.address, symbol: feesResult.feeToken1.symbol, decimals: feesResult.feeToken1.decimals } : null,
+                            };
+                        } else {
+                            console.warn(`[API /user-positions] Could not fetch fee details for tokenId ${tokenIdNumber}. Using default empty fees.`);
+                             fees = { feesAmount0: '0', feesAmount1: '0', feeToken0: null, feeToken1: null };
                         }
                         return { positionInfo: enrichedPositionInfo, fees, tokenId: tokenIdNumber };
                     } catch (tokenError) {
-                        console.error(`[API /user-positions] Error fetching data for one position:`, tokenError);
-                        return null;
+                        // Если tokenIdNumber был определен, логируем его
+                        const idForLog = tokenIdNumber !== undefined ? tokenIdNumber : `index ${i}`;
+                        console.error(`[API /user-positions] Error processing data for one position (ID/Index: ${idForLog}):`, tokenError);
+                        return null; // Важно возвращать null, чтобы Promise.all не прервался из-за одной ошибки
                     }
                 })()
             );
