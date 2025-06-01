@@ -7,6 +7,14 @@ const INonfungiblePositionManagerABI_Card = [{"inputs":[{"internalType":"address
 const ERC20_ABI_CARD = ["function approve(address spender, uint256 amount) external returns (bool)", "function allowance(address owner, address spender) external view returns (uint256)", "function balanceOf(address account) external view returns (uint256)"];
 const MAX_UINT256_CARD = ethers.MaxUint256;
 
+// Modify the tickToPrice function to return price directly (not inverted)
+const tickToPrice = (tick, token0Decimals, token1Decimals) => {
+    if (typeof tick !== 'number') return null;
+    const base = 1.0001;
+    // Calculate the price (token1/token0)
+    return Math.pow(base, tick) * Math.pow(10, token0Decimals - token1Decimals);
+};
+
 function PositionCard({
     positionData,
     signer,
@@ -41,6 +49,13 @@ function PositionCard({
         currentTotalValueToken1Formatted: 'N/A',
         totalFeesToken0Formatted: 'N/A',
         totalFeesToken1Formatted: 'N/A',
+    });
+
+    // Add price calculation effect
+    const [prices, setPrices] = useState({
+        minPrice: null,
+        maxPrice: null,
+        currentPrice: null
     });
 
     const tokenId = positionData?.tokenId;
@@ -157,6 +172,24 @@ function PositionCard({
         }
     }, [positionInfo, uncollectedFees, pnlData, provider, tokenId]);
 
+    useEffect(() => {
+        if (positionInfo && positionInfo.token0Details && positionInfo.token1Details) {
+            const token0Decimals = positionInfo.token0Details.decimals;
+            const token1Decimals = positionInfo.token1Details.decimals;
+
+            // For min price, use tickUpper (as it corresponds to the lower price in USDC per WETH)
+            const minPrice = tickToPrice(positionInfo.tickUpper, token0Decimals, token1Decimals);
+            // For max price, use tickLower (as it corresponds to the higher price in USDC per WETH)
+            const maxPrice = tickToPrice(positionInfo.tickLower, token0Decimals, token1Decimals);
+            const currentPrice = tickToPrice(positionInfo.currentTick, token0Decimals, token1Decimals);
+
+            setPrices({
+                minPrice: minPrice ? (1/minPrice).toFixed(6) : null,
+                maxPrice: maxPrice ? (1/maxPrice).toFixed(6) : null,
+                currentPrice: currentPrice ? (1/currentPrice).toFixed(6) : null
+            });
+        }
+    }, [positionInfo]);
 
     const checkNftApproval = async () => {
         if (!isWalletConnected || !signer || !tokenId || !backendOperatorAddress || !nftManagerAddress) {
@@ -453,22 +486,42 @@ function PositionCard({
 
         <div className="position-info-grid">
             <div>
-                <span className="info-label">Min Price (Tick {positionInfo.tickLower ?? 'N/A'})</span>
-                <span className="info-value"> N/A </span>
+                <span className="info-label">Min Price</span>
+                <span className="info-value">
+                    {prices.minPrice 
+                        ? `${prices.minPrice} ${positionInfo.token0Details.symbol} per ${positionInfo.token1Details.symbol}`
+                        : 'N/A'
+                    }
+                </span>
             </div>
             <div>
-                <span className="info-label">Max Price (Tick {positionInfo.tickUpper ?? 'N/A'})</span>
-                <span className="info-value"> N/A </span>
+                <span className="info-label">Max Price</span>
+                <span className="info-value">
+                    {prices.maxPrice 
+                        ? `${prices.maxPrice} ${positionInfo.token0Details.symbol} per ${positionInfo.token1Details.symbol}`
+                        : 'N/A'
+                    }
+                </span>
             </div>
             {typeof positionInfo.currentTick === 'number' && (  
                 <div>
-                    <span className="info-label">Current Pool Tick</span>
-                    <span className="info-value">{positionInfo.currentTick.toLocaleString()}</span>
+                    <span className="info-label">Current Price</span>
+                    <span className="info-value">
+                        {prices.currentPrice 
+                            ? `${prices.currentPrice} ${positionInfo.token0Details.symbol} per ${positionInfo.token1Details.symbol}`
+                            : 'N/A'
+                        }
+                    </span>
                 </div>
             )}
             <div>
-                <span className="info-label">Liquidity</span>
-                <span className="info-value">{(positionInfo.liquidity && positionInfo.liquidity !== '0') ? Number(ethers.formatUnits(positionInfo.liquidity, 0)).toLocaleString() : '0'}</span>
+                <span className="info-label">Current Liquidity</span>
+                <span className="info-value">
+                    {positionInfo.calculatedAmount0 && positionInfo.calculatedAmount1 
+                        ? `${parseFloat(ethers.formatUnits(positionInfo.calculatedAmount0, positionInfo.token0Details.decimals)).toFixed(6)} ${positionInfo.token0Details.symbol} + ${parseFloat(ethers.formatUnits(positionInfo.calculatedAmount1, positionInfo.token1Details.decimals)).toFixed(6)} ${positionInfo.token1Details.symbol}`
+                        : '0'
+                    }
+                </span>
             </div>
             <div>
                 <span className="info-label">Position ID</span>
@@ -476,15 +529,15 @@ function PositionCard({
             </div>
         </div>
 
-        {uncollectedFees && uncollectedFees.feeToken0 && uncollectedFees.feeToken1 && (
+        {uncollectedFees && (
             <div className="uncollected-fees">
                 <span className="info-label">Uncollected Fees:</span>
                 <div className="fee-values">
                     <span>
-                        {parseFloat(ethers.formatUnits(uncollectedFees.feesAmount0 || '0', uncollectedFees.feeToken0.decimals || 18)).toFixed(Math.min(uncollectedFees.feeToken0.decimals || 18, 6))} {uncollectedFees.feeToken0.symbol || 'T0'}
+                        {parseFloat(ethers.formatUnits(uncollectedFees.feesAmount0 || '0', positionInfo.token0Details.decimals)).toFixed(Math.min(positionInfo.token0Details.decimals, 6))} {positionInfo.token0Details.symbol}
                     </span>
                     <span>
-                        {parseFloat(ethers.formatUnits(uncollectedFees.feesAmount1 || '0', uncollectedFees.feeToken1.decimals || 18)).toFixed(Math.min(uncollectedFees.feeToken1.decimals || 18, 6))} {uncollectedFees.feeToken1.symbol || 'T1'}
+                        {parseFloat(ethers.formatUnits(uncollectedFees.feesAmount1 || '0', positionInfo.token1Details.decimals)).toFixed(Math.min(positionInfo.token1Details.decimals, 6))} {positionInfo.token1Details.symbol}
                     </span>
                 </div>
                 <button 
