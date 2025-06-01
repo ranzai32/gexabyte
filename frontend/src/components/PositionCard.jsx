@@ -534,10 +534,16 @@ function PositionCard({
                 <span className="info-label">Uncollected Fees:</span>
                 <div className="fee-values">
                     <span>
-                        {parseFloat(ethers.formatUnits(uncollectedFees.feesAmount0 || '0', positionInfo.token0Details.decimals)).toFixed(Math.min(positionInfo.token0Details.decimals, 6))} {positionInfo.token0Details.symbol}
+                        {uncollectedFees.feeToken0 ? 
+                            `${parseFloat(ethers.formatUnits(uncollectedFees.feesAmount0 || '0', uncollectedFees.feeToken0.decimals)).toFixed(Math.min(uncollectedFees.feeToken0.decimals, 6))} ${uncollectedFees.feeToken0.symbol}`
+                            : 'N/A' 
+                        }
                     </span>
                     <span>
-                        {parseFloat(ethers.formatUnits(uncollectedFees.feesAmount1 || '0', positionInfo.token1Details.decimals)).toFixed(Math.min(positionInfo.token1Details.decimals, 6))} {positionInfo.token1Details.symbol}
+                        {uncollectedFees.feeToken1 ?
+                            `${parseFloat(ethers.formatUnits(uncollectedFees.feesAmount1 || '0', uncollectedFees.feeToken1.decimals)).toFixed(Math.min(uncollectedFees.feeToken1.decimals, 6))} ${uncollectedFees.feeToken1.symbol}`
+                            : 'N/A'
+                        }
                     </span>
                 </div>
                 <button 
