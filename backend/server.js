@@ -47,27 +47,19 @@ pgPool.connect((err, client, release) => {
     });
 });
 
-app.use(cors());  
+const corsOptions = {
+  origin: '*', // В продакшене лучше указать домен вашего фронтенда
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Явно разрешаем POST и OPTIONS
+  allowedHeaders: ['Content-Type', 'Authorization'], // Явно разрешаем заголовок Content-Type
+};
+app.use(cors(corsOptions));
 app.use(express.json());  
 
 const autoManageState = {};
 app.get('/', (req, res) => {
     res.send('Бэкенд сервер для Uniswap Interface работает!');
 });
-
-// --- Маршруты API ---
-
-/**
- * Эндпоинт для получения данных о пуле.
- * Query параметры:
- * - tokenA_address: адрес первого токена
- * - tokenB_address: адрес второго токена
- * - feeTier: уровень комиссии пула (например, 500, 3000, 10000)
- * - tokenA_decimals: десятичные первого токена (опционально, по умолчанию 18)
- * - tokenB_decimals: десятичные второго токена (опционально, по умолчанию 6)
- * - tokenA_symbol: символ первого токена (опционально, по умолчанию TKA)
- * - tokenB_symbol: символ второго токена (опционально, по умолчанию TKB)
- */
+ 
 
 app.get('/api/quote', async (req, res) => {
     const {
@@ -853,6 +845,60 @@ app.post('/api/auto-manage/toggle', async (req, res) => {
     }
 });
 
+app.post('/api/auto-manage/update-nft-approval', async (req, res) => {
+    const { tokenId } = req.body;  
+    const parsedTokenId = parseInt(tokenId);
+
+    if (isNaN(parsedTokenId)) {
+        return res.status(400).json({ error: "Invalid tokenId" });
+    }
+
+    const backendOperatorAddress = process.env.BACKEND_OPERATOR_PRIVATE_KEY 
+        ? new ethers.Wallet(process.env.BACKEND_OPERATOR_PRIVATE_KEY).address
+        : null;
+
+    if (!backendOperatorAddress) {
+        return res.status(500).json({ error: "Backend operator not configured." });
+    }
+
+    console.log(`[API /update-nft-approval] Received request for tokenId ${parsedTokenId}`);
+
+    try {
+        const positionManagerContract = new ethers.Contract(
+            UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
+            INonfungiblePositionManagerABI,
+            provider
+        );
+ 
+        const approvedAddress = await positionManagerContract.getApproved(parsedTokenId);
+        const isApproved = approvedAddress && approvedAddress.toLowerCase() === backendOperatorAddress.toLowerCase();
+
+        console.log(`[API /update-nft-approval] On-chain check for tokenId ${parsedTokenId}: Approved address is ${approvedAddress}. Is operator approved? ${isApproved}`);
+
+        if (isApproved) {
+ 
+            const result = await pgPool.query(
+                'UPDATE auto_managed_positions SET nft_approved_to_operator = TRUE, updated_at = NOW(), status_message = $1 WHERE token_id = $2',
+                ['NFT approval for operator confirmed.', parsedTokenId]
+            );
+            
+            if (result.rowCount === 0) {
+                 console.warn(`[API /update-nft-approval] Tried to update approval status for tokenId ${parsedTokenId}, but it was not found in the DB.`);
+                 // Можно не считать это ошибкой, если позиция еще не отслеживается
+                 // return res.status(404).json({ error: "Position not found in tracking database." });
+            }
+
+            console.log(`[API /update-nft-approval] Database updated for tokenId ${parsedTokenId}: nft_approved_to_operator set to TRUE.`);
+            res.status(200).json({ success: true, message: "NFT approval status updated." });
+        } else {
+            // Если по какой-то причине фронтенд ошибся, и одобрения нет
+            res.status(400).json({ error: "On-chain verification failed. Operator is not approved." });
+        }
+    } catch (error) {
+        console.error(`[API /update-nft-approval] Error updating approval for tokenId ${parsedTokenId}:`, error);
+        res.status(500).json({ error: "Failed to update approval status", details: error.message });
+    }
+});
 
 // TODO: Добавить эндпоинты для операций, требующих подписи пользователя (они будут готовить параметры)
 // Например: POST /api/prepare-mint, POST /api/prepare-collect-fees и т.д.

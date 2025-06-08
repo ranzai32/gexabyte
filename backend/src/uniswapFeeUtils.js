@@ -15,41 +15,35 @@ async function getUncollectedFees(tokenId, provider) {
     );
 
     try {
-        // Сначала получаем информацию о токенах в позиции
         const positionData = await positionManagerContract.positions(tokenId);
 
         if (!positionData || positionData.token0 === ethers.ZeroAddress) {
-            console.warn(`[getUncollectedFees] Position ${tokenId} not found or invalid (token0 is zero address).`);
+            console.warn(`[getUncollectedFees] Position ${tokenId} not found or invalid.`);
             return { feesAmount0: '0', feesAmount1: '0', feeToken0: null, feeToken1: null };
         }
 
         const token0Details = getTokenDetailsByAddressOnBackend(positionData.token0);
         const token1Details = getTokenDetailsByAddressOnBackend(positionData.token1);
 
-        if (!token0Details || !token1Details) {
-            throw new Error("Could not get details for one of the tokens in the position.");
-        }
-
-        // Для staticCall нам нужен адрес получателя, но так как транзакция не отправляется,
-        // можно использовать любой адрес. Используем адрес нашего бэкенд-кошелька для консистентности.
-        const recipientAddress = wallet.address;
+        const operatorAddress = wallet.address; // Адрес нашего бэкенд-оператора
         const MAX_UINT128 = (2n ** 128n) - 1n;
 
         const collectParams = {
             tokenId: tokenId,
-            recipient: recipientAddress,
+            recipient: operatorAddress, // Получатель не важен для staticCall, но должен быть
             amount0Max: MAX_UINT128,
             amount1Max: MAX_UINT128
         };
 
-        // Симулируем вызов collect, чтобы получить точные текущие комиссии
+        // --- ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ ---
+        // Мы явно указываем, от чьего имени (from) симулировать вызов.
+        // Теперь контракт при проверке прав увидит адрес нашего оператора.
         const collectResult = await positionManagerContract.collect.staticCall(
             collectParams,
-            // Для staticCall от имени владельца, нужно передать from, но для расчета комиссий это не обязательно,
-            // так как комиссия не зависит от того, кто ее запрашивает.
-            // Если возникнет ошибка прав, нужно будет передать { from: ownerAddress }
+            { from: operatorAddress } 
         );
-        
+        // --------------------------------
+
         const feesAmount0 = collectResult.amount0;
         const feesAmount1 = collectResult.amount1;
         
@@ -73,10 +67,8 @@ async function getUncollectedFees(tokenId, provider) {
 
     } catch (error) {
         console.error(`[getUncollectedFees] Error fetching fees via staticCall for tokenId ${tokenId}:`, error.message);
-        // Если возникает ошибка 'Not approved', это означает, что у адреса, от имени которого делается вызов,
-        // нет прав на эту позицию. Для staticCall это менее вероятно, но возможно на некоторых нодах.
-        if (error.reason === 'Not approved' || (error.data && error.data.includes('Not approved'))) {
-             console.warn(`[getUncollectedFees] The configured wallet may not be approved for tokenId ${tokenId}. The 'Not approved' error was caught.`);
+        if (error.reason) {
+             console.error(`[getUncollectedFees] Contract Revert Reason: ${error.reason}`);
         }
         return { feesAmount0: '0', feesAmount1: '0', feeToken0: null, feeToken1: null, error: error.message };
     }

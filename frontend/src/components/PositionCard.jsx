@@ -224,8 +224,27 @@ function PositionCard({
             const tx = await positionManagerContract.approve(backendOperatorAddress, tokenId);
             setAutoManageStatus(`Approval transaction sent: ${tx.hash.substring(0,10)}... Waiting...`);
             await tx.wait(1);
+            
+             
+            console.log('On-chain approval successful. Notifying backend...');
+            setAutoManageStatus('Approval confirmed, updating server...');
+
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+            const response = await fetch(`${backendUrl}/api/auto-manage/update-nft-approval`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tokenId: tokenId }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Backend failed to verify approval.');
+            }
+
             setIsNftApprovedForOperator(true);
             setAutoManageStatus('NFT successfully approved for auto-management!');
+            if (onPositionUpdate) onPositionUpdate();  
+
         } catch (error) {
             console.error("Error approving NFT for operator:", error);
             let errMsg = error.reason || error.data?.message || error.message || "Failed to approve NFT.";
