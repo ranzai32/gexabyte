@@ -585,6 +585,15 @@ async function checkAndRebalance(tokenId, userAddress, token0AddrCanonical, toke
                     await client.query('COMMIT');
                     console.log(`[AutoManage] Database updated successfully for new NFT ${newNftTokenId}.`);
                     await stopMonitoringPosition(oldTokenId, pgPoolInstance);
+                    console.log(`[AutoManage] Starting new monitor for rebalanced position ${newNftTokenId}.`);
+                    startMonitoringPosition(
+                        newNftTokenId, 
+                        newStrategyParamsForDB, 
+                        userAddress, 
+                        sdkToken0Canonical.address, 
+                        sdkToken1Canonical.address, 
+                        pgPoolInstance
+                    );
                 } catch (dbError) {
                     await client.query('ROLLBACK');
                     console.error(`[AutoManage] Database transaction error: ${dbError.message}. Rolled back.`);

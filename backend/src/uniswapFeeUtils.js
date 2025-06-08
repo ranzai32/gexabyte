@@ -1,12 +1,12 @@
 const { ethers } = require('ethers');
-const { UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, CHAIN_ID, provider: globalProvider } = require('./config');
-const { INonfungiblePositionManagerABI } = require('./uniswapPositionUtils'); // Убедитесь, что INonfungiblePositionManagerABI экспортируется здесь или импортируется правильно
+const { UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, provider: globalProvider, wallet } = require('./config');
+const { INonfungiblePositionManagerABI } = require('./uniswapPositionUtils');  
 const { getTokenDetailsByAddressOnBackend } = require('./constants/predefinedTokens');
 
-async function getUncollectedFees(tokenId, signerOrProvider) {
-    console.log(`[getUncollectedFees] Fetching settled fees (tokensOwed) for tokenId: ${tokenId}`);
+async function getUncollectedFees(tokenId, provider) {
+    console.log(`[getUncollectedFees] Fetching uncollected fees via collect.staticCall for tokenId: ${tokenId}`);
     
-    const currentProvider = signerOrProvider || globalProvider;
+    const currentProvider = provider || globalProvider;
 
     const positionManagerContract = new ethers.Contract(
         UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS,
@@ -15,56 +15,70 @@ async function getUncollectedFees(tokenId, signerOrProvider) {
     );
 
     try {
+        // Сначала получаем информацию о токенах в позиции
         const positionData = await positionManagerContract.positions(tokenId);
 
         if (!positionData || positionData.token0 === ethers.ZeroAddress) {
             console.warn(`[getUncollectedFees] Position ${tokenId} not found or invalid (token0 is zero address).`);
-            return {
-                feesAmount0: '0', // Это будет tokensOwed0
-                feesAmount1: '0', // Это будет tokensOwed1
-                feeToken0: null,
-                feeToken1: null,
-                source: 'position_struct_invalid',
-                // Убираем поля, связанные с staticCall, так как мы его больше не делаем для этого запроса
-                // tokensOwed0_struct: '0', 
-                // tokensOwed1_struct: '0',
-                // staticCallError: 'Position not found' 
-            };
+            return { feesAmount0: '0', feesAmount1: '0', feeToken0: null, feeToken1: null };
         }
-        
-        const tokensOwed0FromStruct = positionData.tokensOwed0;
-        const tokensOwed1FromStruct = positionData.tokensOwed1;
-        console.log(`[getUncollectedFees] From positions() struct for ${tokenId}: tokensOwed0=${tokensOwed0FromStruct.toString()}, tokensOwed1=${tokensOwed1FromStruct.toString()}`);
 
-        const token0Details = await getTokenDetailsByAddressOnBackend(positionData.token0);
-        const token1Details = await getTokenDetailsByAddressOnBackend(positionData.token1);
+        const token0Details = getTokenDetailsByAddressOnBackend(positionData.token0);
+        const token1Details = getTokenDetailsByAddressOnBackend(positionData.token1);
 
-        const feeToken0Data = token0Details ? { address: positionData.token0, symbol: token0Details.symbol, decimals: token0Details.decimals } : null;
-        const feeToken1Data = token1Details ? { address: positionData.token1, symbol: token1Details.symbol, decimals: token1Details.decimals } : null;
+        if (!token0Details || !token1Details) {
+            throw new Error("Could not get details for one of the tokens in the position.");
+        }
+
+        // Для staticCall нам нужен адрес получателя, но так как транзакция не отправляется,
+        // можно использовать любой адрес. Используем адрес нашего бэкенд-кошелька для консистентности.
+        const recipientAddress = wallet.address;
+        const MAX_UINT128 = (2n ** 128n) - 1n;
+
+        const collectParams = {
+            tokenId: tokenId,
+            recipient: recipientAddress,
+            amount0Max: MAX_UINT128,
+            amount1Max: MAX_UINT128
+        };
+
+        // Симулируем вызов collect, чтобы получить точные текущие комиссии
+        const collectResult = await positionManagerContract.collect.staticCall(
+            collectParams,
+            // Для staticCall от имени владельца, нужно передать from, но для расчета комиссий это не обязательно,
+            // так как комиссия не зависит от того, кто ее запрашивает.
+            // Если возникнет ошибка прав, нужно будет передать { from: ownerAddress }
+        );
         
-        // Теперь feesAmount0 и feesAmount1 будут содержать значения из tokensOwed0 и tokensOwed1
+        const feesAmount0 = collectResult.amount0;
+        const feesAmount1 = collectResult.amount1;
+        
+        console.log(`[getUncollectedFees] Uncollected fees from staticCall for ${tokenId}: amount0=${feesAmount0.toString()}, amount1=${feesAmount1.toString()}`);
+
         return {
-            feesAmount0: tokensOwed0FromStruct.toString(),
-            feesAmount1: tokensOwed1FromStruct.toString(),
-            feeToken0: feeToken0Data,
-            feeToken1: feeToken1Data,
-            source: 'position_struct' // Указываем, что данные взяты из структуры positions
-            // Убираем поля, связанные с staticCall
-            // tokensOwed0_struct: tokensOwed0FromStruct.toString(), 
-            // tokensOwed1_struct: tokensOwed1FromStruct.toString(),
-            // staticCallError: null 
+            feesAmount0: feesAmount0.toString(),
+            feesAmount1: feesAmount1.toString(),
+            feeToken0: {
+                address: positionData.token0,
+                symbol: token0Details.symbol,
+                decimals: token0Details.decimals
+            },
+            feeToken1: {
+                address: positionData.token1,
+                symbol: token1Details.symbol,
+                decimals: token1Details.decimals
+            },
+            source: 'collect_static_call'
         };
 
     } catch (error) {
-        console.error(`[getUncollectedFees] Error fetching position data for tokenId ${tokenId}:`, error.message);
-        return {
-            feesAmount0: '0',
-            feesAmount1: '0',
-            feeToken0: null,
-            feeToken1: null,
-            source: 'fetch_error',
-            // staticCallError: error.message // Можно убрать, если staticCall не используется
-        };
+        console.error(`[getUncollectedFees] Error fetching fees via staticCall for tokenId ${tokenId}:`, error.message);
+        // Если возникает ошибка 'Not approved', это означает, что у адреса, от имени которого делается вызов,
+        // нет прав на эту позицию. Для staticCall это менее вероятно, но возможно на некоторых нодах.
+        if (error.reason === 'Not approved' || (error.data && error.data.includes('Not approved'))) {
+             console.warn(`[getUncollectedFees] The configured wallet may not be approved for tokenId ${tokenId}. The 'Not approved' error was caught.`);
+        }
+        return { feesAmount0: '0', feesAmount1: '0', feeToken0: null, feeToken1: null, error: error.message };
     }
 }
 
