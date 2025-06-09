@@ -816,9 +816,9 @@ app.post('/api/auto-manage/toggle', async (req, res) => {
 
         // --- Начало изменений ---
         const defaultStrategyParams = { 
-            rangePercentage: 5, 
+            rangePercentage: 15, 
             rebalanceSlippage: 0.5, // Пример
-            checkIntervalMinutes: 5 // Пример
+            checkIntervalMinutes: 1 // Пример
         };
 
         let finalStrategyParametersToStore = defaultStrategyParams;
