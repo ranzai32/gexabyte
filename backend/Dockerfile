@@ -1,13 +1,20 @@
+# backend/Dockerfile
+
 FROM node:18-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
+# Копируем package.json и package-lock.json
 COPY package*.json ./
 
+# Устанавливаем зависимости
 RUN npm install
 
+# Копируем остальные файлы бэкенда
 COPY . .
 
+# Бэкенд будет слушать этот порт
 EXPOSE 3001
 
-CMD [ "node", "server.js" ]
+# Команда для запуска сервера
+CMD printenv && node server.js

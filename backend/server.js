@@ -31,7 +31,7 @@ const pgPool = new Pool({
     password: process.env.PG_PASSWORD,
     port: process.env.PG_PORT,
     ssl: {
-        rejectUnauthorized: false
+            rejectUnauthorized: false
     }
 });
 
@@ -659,7 +659,7 @@ app.post('/api/positions/track-manual-mint', async (req, res) => {
     try {
         // Пример strategy_parameters, вы можете настроить его по-другому
         const strategyParameters = JSON.stringify({
-            rangePercentage: 5, // Дефолтное значение или то, что имеет смысл для ручных позиций
+            rangePercentage: 15, // Дефолтное значение или то, что имеет смысл для ручных позиций
             lastTickLower: tickLower.toString(),
             lastTickUpper: tickUpper.toString(),
             // Другие параметры по необходимости

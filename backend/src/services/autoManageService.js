@@ -133,7 +133,7 @@ async function checkAndRebalance(tokenId, userAddress, token0AddrCanonical, toke
             return;
         }
 
-        const defaultStrategy = { rangePercentage: 5, checkIntervalMinutes: 5, rebalanceSlippageBips: 50, swapPercentageForRebalance: 50 }; 
+        const defaultStrategy = { rangePercentage: 15, checkIntervalMinutes: 1, rebalanceSlippageBips: 50, swapPercentageForRebalance: 50 }; 
         const currentStrategyParams = { ...defaultStrategy, ...(strategyParamsInput || {}) };
         
         positionManager = new ethers.Contract(UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS, INonfungiblePositionManagerABI, backendOperatorWallet);
@@ -681,7 +681,7 @@ async function initializeAutoManagement(pgPoolInstance) {
         );
         console.log(`[AutoManage Init] Found ${result.rows.length} positions to auto-manage.`);
         for (const row of result.rows) {
-            const defaultStrategy = { rangePercentage: 5, checkIntervalMinutes: 5, rebalanceSlippageBips: 50, swapPercentageForRebalance: 50 };
+            const defaultStrategy = { rangePercentage: 15, checkIntervalMinutes: 1, rebalanceSlippageBips: 50, swapPercentageForRebalance: 50 };
             const currentStrategyParamsForRow = { ...defaultStrategy, ...(row.strategy_parameters || {}) };
 
             let addr0 = row.token0_address;
