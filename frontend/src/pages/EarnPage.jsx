@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MyPositions from '../components/MyPositions';
 import AllPools from '../components/AllPools';
@@ -12,23 +12,41 @@ function EarnPage({ provider, signer }) {
 
   const { allPools, isLoading: isLoadingAllPools, error: allPoolsError, fetchAllPools } = usePools();
   
-  // --- ИЗМЕНЕНИЕ: Получаем все нужные данные из PositionsContext ---
   const { 
       userPositions, 
       isLoading: isLoadingMyPositions, 
       error: myPositionsError, 
       fetchUserPositions,
-      isWalletConnected, // Получаем статус кошелька
-      userAddress        // и адрес
+      isWalletConnected,
+      userAddress
   } = usePositions();
 
   useEffect(() => {
-    // Загружаем пулы, только если их еще нет
+    // Начальная загрузка данных при монтировании компонента
     if (allPools.length === 0) {
         fetchAllPools();
     }
-    // fetchUserPositions вызывается автоматически из своего контекста
+    // fetchUserPositions вызывается автоматически из своего контекста при изменении userAddress
   }, [fetchAllPools, allPools.length]);
+
+  // Эффект для установки интервала обновления
+  useEffect(() => {
+    const refreshInterval = 60000; // 60 секунд
+    
+    // Функция для обновления данных
+    const refreshData = () => {
+      console.log('Refreshing pools and positions data...');
+      fetchAllPools();
+      if (isWalletConnected) {
+        fetchUserPositions();
+      }
+    };
+
+    const intervalId = setInterval(refreshData, refreshInterval);
+
+    // Очистка интервала при размонтировании компонента
+    return () => clearInterval(intervalId);
+  }, [fetchAllPools, fetchUserPositions, isWalletConnected]);
 
   const handlePositionDataUpdate = () => {
     console.log(`EarnPage: Received update signal. Refetching positions...`);
@@ -68,7 +86,6 @@ function EarnPage({ provider, signer }) {
           <MyPositions
             provider={provider} 
             signer={signer}
-            // --- ИЗМЕНЕНИЕ: Передаем пропсы, полученные из контекста ---
             isWalletConnected={isWalletConnected}
             userAddress={userAddress}
             positions={userPositions}

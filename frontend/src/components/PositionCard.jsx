@@ -345,7 +345,7 @@ function PositionCard({
                     tokenId: parseInt(tokenId),
                     enable: newStatus,
                     userAddress: userAddress,
-                    strategyParameters: { rangePercentage: 5 },
+                    strategyParameters: { rangePercentage: 15 },
                 }),
             });
             if (response.ok) {
