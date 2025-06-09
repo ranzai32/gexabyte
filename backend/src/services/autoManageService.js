@@ -644,7 +644,7 @@ function startMonitoringPosition(tokenId, strategyParameters, userAddress, token
         return;
     }
 
-    const defaultStrategy = { rangePercentage: 5, checkIntervalMinutes: 5, rebalanceSlippage: 0.5 };
+    const defaultStrategy = { rangePercentage: 15, checkIntervalMinutes: 1, rebalanceSlippage: 0.5 };
     // Здесь используем имя параметра функции - strategyParameters
     const currentStrategyParams = { ...defaultStrategy, ...(strategyParameters || {}) };
 

@@ -15,6 +15,8 @@ const UNISWAP_V3_QUOTER_V2_ADDRESS = process.env.UNISWAP_V3_QUOTER_V2_ADDRESS;
 const app = express();
 const PORT = 3001;
 const IQuoterV2_ABI = require('./src/abi/IQuoterV2_ABI.json'); 
+const { SUPPORTED_POOLS_CONFIG_EARN, PREDEFINED_TOKENS_EARN } = require('./src/constants/earnPageConfig');
+const poolDataCache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
 
 const {
     initializeAutoManagement,
@@ -158,6 +160,12 @@ app.get('/api/quote', async (req, res) => {
 });
 
 app.get('/api/pool-data', async (req, res) => {
+    const cacheKey = JSON.stringify(req.query);
+    const cachedData = poolDataCache.get(cacheKey);
+    if (cachedData) {
+        console.log(`[API /pool-data] Returning cached data for key: ${cacheKey}`);
+        return res.json(cachedData);
+    }
     const {
         tokenA_address,
         tokenB_address,
@@ -569,6 +577,60 @@ app.get('/api/auto-manage/status/:tokenId', async (req, res) => {
     } catch (error) {
         console.error(`[API /auto-manage/status] Error for tokenId ${parsedTokenId}:`, error);
         res.status(500).json({ error: "Failed to get auto-manage status", details: error.message });
+    }
+});
+
+app.get('/api/all-pools-summary', async (req, res) => {
+    console.log('[API /all-pools-summary] Fetching summary for all configured pools.');
+ 
+    const { SUPPORTED_POOLS_CONFIG_EARN, PREDEFINED_TOKENS_EARN } = require('./src/constants/earnPageConfig');
+
+    try {
+        const poolDataPromises = SUPPORTED_POOLS_CONFIG_EARN.map(config => {
+            const token0 = PREDEFINED_TOKENS_EARN[config.token0Key];
+            const token1 = PREDEFINED_TOKENS_EARN[config.token1Key];
+            if (!token0 || !token1) return Promise.resolve(null);
+
+            const tA = new UniswapToken(CHAIN_ID, token0.address, token0.decimals, token0.symbol);
+            const tB = new UniswapToken(CHAIN_ID, token1.address, token1.decimals, token1.symbol);
+
+            return getPoolData(tA, tB, config.feeTier).then(poolData => {
+                if (!poolData) return { ...config, token0, token1, poolData: null, error: true };
+                
+                return {
+                    ...config,
+                    token0,
+                    token1,
+                    poolData: {
+                        token0Price: poolData.token0Price.toSignificant(6),
+                        token1Price: poolData.token1Price.toSignificant(6),
+                        tickCurrent: poolData.tickCurrent,
+ 
+                        token0: {
+                            address: poolData.token0.address,
+                            symbol: poolData.token0.symbol,
+                            decimals: poolData.token0.decimals
+                        },
+                        token1: {
+                            address: poolData.token1.address,
+                            symbol: poolData.token1.symbol,
+                            decimals: poolData.token1.decimals
+                        }
+                    }
+                };
+ 
+            }).catch(e => {
+                console.error(`Error fetching pool data for ${config.token0Key}/${config.token1Key}:`, e);
+                return { ...config, token0, token1, poolData: null, error: true };
+            });
+        });
+
+        const results = (await Promise.all(poolDataPromises)).filter(p => p !== null);
+        res.json(results);
+
+    } catch (error) {
+        console.error("[API /all-pools-summary] Error:", error);
+        res.status(500).json({ error: "Failed to fetch all pools summary" });
     }
 });
 

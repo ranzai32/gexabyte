@@ -8,6 +8,8 @@ import TradePage from './pages/TradePage';
 import EarnPage from './pages/EarnPage';
 import ManageLiquidityPage from './pages/ManageLiquidityPage';
 import AddLiquidityPage from './pages/AddLiquidityPage';
+import { PoolsProvider } from './context/PoolsContext';
+import { PositionsProvider } from './context/PositionsContext';
 
 function App() {
   const [userAddress, setUserAddress] = useState(null);
@@ -80,7 +82,9 @@ function App() {
 
   return (
     <div className="app-container">
-      <BrowserRouter>  
+      <BrowserRouter>
+        <PoolsProvider>
+          <PositionsProvider userAddress={userAddress} isWalletConnected={!!userAddress}> 
         <div className="app-container">
           <Navbar 
             userAddress={userAddress} 
@@ -145,6 +149,8 @@ function App() {
             </Routes>
           </main>
         </div>
+         </PositionsProvider>
+        </PoolsProvider> 
       </BrowserRouter>
     </div>
   );
