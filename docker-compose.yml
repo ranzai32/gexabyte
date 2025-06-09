@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: rockswap-backend
+    restart: always
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_BACKEND_URL=${VITE_BACKEND_URL}
+        - VITE_UNISWAP_V3_SWAP_ROUTER_ADDRESS=${VITE_UNISWAP_V3_SWAP_ROUTER_ADDRESS}
+        - VITE_UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS=${VITE_UNISWAP_V3_NFT_POSITION_MANAGER_ADDRESS}
+        - VITE_BACKEND_OPERATOR_ADDRESS=${VITE_BACKEND_OPERATOR_ADDRESS}
+    container_name: rockswap-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
